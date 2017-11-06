@@ -51,17 +51,13 @@ public class BoatTypeTest {
                 Command.builder()
                         .setShortDescription(Text.of("Gives you a boat of a specific TreeType"))
                         .parameter(Parameter.catalogedElement(TreeType.class).setKey("tree").build())
-                        .setExecutor((src, args) -> {
-                            if (!(src instanceof Player)) {
-                                src.sendMessage(Text.of("Only players can run this command"));
-                                return CommandResult.empty();
-                            }
-                            Player player = (Player) src;
+                        .setTargetedExecutorErrorMessage(Text.of("Only players can run this command"))
+                        .targetedExecutor((cause, player, args) -> {
                             Boat boat = (Boat) player.getLocation().getExtent().createEntity(EntityTypes.BOAT, player.getLocation().getPosition());
                             boat.offer(Keys.TREE_TYPE, args.<TreeType>getOne("tree").orElse(TreeTypes.OAK));
                             player.getWorld().spawnEntity(boat);
                             return CommandResult.success();
-                        })
+                        }, Player.class)
                         .build(),
                 "makeboat");
     }

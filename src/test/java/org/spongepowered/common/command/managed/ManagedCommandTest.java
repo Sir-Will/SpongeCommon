@@ -33,6 +33,8 @@ import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandException;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
+import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.api.event.cause.EventContext;
 import org.spongepowered.common.command.SpongeDispatcher;
 import org.spongepowered.lwts.runner.LaunchWrapperTestRunner;
 
@@ -52,7 +54,8 @@ public class ManagedCommandTest {
 
         final SpongeDispatcher dispatcher = new SpongeDispatcher();
         dispatcher.register(cmd, "cmd");
-        dispatcher.process(Mockito.mock(CommandSource.class), "cmd");
+        CommandSource source = Mockito.mock(CommandSource.class);
+        dispatcher.process(Cause.builder().append(source).build(EventContext.empty()),  "cmd");
     }
 
     @Test

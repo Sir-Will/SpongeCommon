@@ -49,6 +49,7 @@ import org.spongepowered.api.command.parameter.token.InputTokenizer;
 import org.spongepowered.api.command.managed.ChildExceptionBehavior;
 import org.spongepowered.api.command.managed.CommandExecutor;
 import org.spongepowered.api.command.source.ConsoleSource;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.format.TextColors;
 import org.spongepowered.api.world.Location;
@@ -88,8 +89,8 @@ public class SpongeManagedCommand implements Command, Dispatcher {
     private final Flags flags;
     private final CommandExecutor executor;
     @Nullable private final String permission;
-    private final Function<CommandSource, Optional<Text>> shortDescription;
-    private final Function<CommandSource, Optional<Text>> extendedDescription;
+    private final Function<Cause, Optional<Text>> shortDescription;
+    private final Function<Cause, Optional<Text>> extendedDescription;
     private final boolean requirePermissionForChildren;
     private final Map<String, Integer> subcommandLengths = Maps.newHashMap();
 
@@ -99,8 +100,8 @@ public class SpongeManagedCommand implements Command, Dispatcher {
             InputTokenizer inputTokenizer,
             Flags flags,
             CommandExecutor executor, @Nullable String permission,
-            Function<CommandSource, Optional<Text>> shortDescription,
-            Function<CommandSource, Optional<Text>> extendedDescription,
+            Function<Cause, Optional<Text>> shortDescription,
+            Function<Cause, Optional<Text>> extendedDescription,
             boolean requirePermissionForChildren) {
         this.parameters = Parameter.seq(parameters);
         this.childExceptionBehavior = childExceptionBehavior;
@@ -131,17 +132,17 @@ public class SpongeManagedCommand implements Command, Dispatcher {
     }
 
     @Override
-    public CommandResult process(CommandSource source, String arguments) throws CommandException {
+    public CommandResult process(Cause cause, String arguments) throws CommandException {
         // Step one, create the CommandArgs and CommandContext
         SpongeCommandArgs args = new SpongeCommandArgs(this.inputTokenizer.tokenize(arguments, true), arguments);
-        SpongeCommandContext context = new SpongeCommandContext();
-        return processInternal(source, args, context);
+        SpongeCommandContext context = new SpongeCommandContext(cause);
+        return processInternal(cause, args, context);
     }
 
-    public CommandResult processInternal(CommandSource source, CommandArgs args, SpongeCommandContext context)
+    public CommandResult processInternal(Cause cause, CommandArgs args, SpongeCommandContext context)
             throws CommandException {
         if (this.requirePermissionForChildren) {
-            checkPermission(source);
+            checkPermission(cause);
         }
 
         ChildCommandException childException = null;
@@ -159,9 +160,9 @@ public class SpongeManagedCommand implements Command, Dispatcher {
                 try {
                     if (cmd instanceof SpongeManagedCommand) {
                         SpongeManagedCommand childSpec = (SpongeManagedCommand) cmd;
-                        return childSpec.processInternal(source, args, context);
+                        return childSpec.processInternal(cause, args, context);
                     } else {
-                        return cmd.process(source, args.rawArgsFromCurrentPosition());
+                        return cmd.process(cause, args.rawArgsFromCurrentPosition());
                     }
                 } catch (CommandException ex) {
                     // This might still rethrow, depends on the selected behavior
@@ -182,13 +183,13 @@ public class SpongeManagedCommand implements Command, Dispatcher {
 
         // Step three, this command
         if (!this.requirePermissionForChildren) {
-            checkPermission(source);
+            checkPermission(cause);
         }
 
-        populateContext(source, args, context);
+        populateContext(cause, args, context);
 
         try {
-            return this.executor.execute(source, context);
+            return this.executor.execute(cause, context);
         } catch (CommandException ex) {
             if (childException != null) {
                 throw new ChildCommandException(
@@ -202,40 +203,40 @@ public class SpongeManagedCommand implements Command, Dispatcher {
     }
 
     @Override
-    public List<String> getSuggestions(CommandSource source, String arguments, @Nullable Location<World> targetPosition)
+    public List<String> getSuggestions(Cause cause, String arguments, @Nullable Location<World> targetPosition)
             throws CommandException {
-        checkNotNull(source, "source");
+        checkNotNull(cause, "cause");
         SpongeCommandArgs args = new SpongeCommandArgs(this.inputTokenizer.tokenize(arguments, true), arguments);
-        CommandContext context = new SpongeCommandContext(null, true, targetPosition);
-        return ImmutableList.copyOf(this.parameters.complete(source, args, context));
+        CommandContext context = new SpongeCommandContext(cause, null, true, targetPosition);
+        return ImmutableList.copyOf(this.parameters.complete(cause, args, context));
     }
 
     @Override
-    public boolean testPermission(CommandSource source) {
-        return this.permission == null || source.hasPermission(this.permission);
+    public boolean testPermission(Cause cause) {
+        return this.permission == null || Command.getSubjectFromCause(cause).map(x -> x.hasPermission(this.permission)).orElse(true);
     }
 
     @Override
-    public Optional<Text> getShortDescription(CommandSource source) {
-        return this.shortDescription.apply(source);
+    public Optional<Text> getShortDescription(Cause cause) {
+        return this.shortDescription.apply(cause);
     }
 
-    public Optional<Text> getExtendedDescription(CommandSource source) {
-        return this.extendedDescription.apply(source);
+    public Optional<Text> getExtendedDescription(Cause cause) {
+        return this.extendedDescription.apply(cause);
     }
 
     @Override
-    public Optional<Text> getHelp(CommandSource source) {
-        checkNotNull(source, "source");
+    public Optional<Text> getHelp(Cause cause) {
+        checkNotNull(cause, "cause");
         Text.Builder builder = Text.builder();
-        this.getShortDescription(source).ifPresent((a) -> builder.append(a, Text.NEW_LINE));
+        this.getShortDescription(cause).ifPresent((a) -> builder.append(a, Text.NEW_LINE));
         builder.append(Text.of("Usage: "));
         Sponge.getCommandManager().getPrimaryAlias(this).ifPresent(x -> builder.append(Text.of("/", x)));
-        builder.append(CommandMessageFormatting.SPACE_TEXT).append(parameterUsageText(source));
-        this.getExtendedDescription(source).ifPresent((a) -> builder.append(Text.NEW_LINE, a));
+        builder.append(CommandMessageFormatting.SPACE_TEXT).append(parameterUsageText(cause));
+        this.getExtendedDescription(cause).ifPresent((a) -> builder.append(Text.NEW_LINE, a));
 
         if (!this.getPrimaryAliases().isEmpty()) {
-            Text subs = createSubcommands(source);
+            Text subs = createSubcommands(cause);
             if (!subs.isEmpty()) {
                 builder.append(Text.NEW_LINE).append(Text.NEW_LINE).append(subs);
             }
@@ -244,25 +245,25 @@ public class SpongeManagedCommand implements Command, Dispatcher {
     }
 
     @Override
-    public Text getUsage(CommandSource source) {
-        Text paramUsage = parameterUsageText(source);
+    public Text getUsage(Cause cause) {
+        Text paramUsage = parameterUsageText(cause);
         Text.Builder builder = Text.builder();
         if (!paramUsage.isEmpty()) {
             builder.append(paramUsage);
         }
 
-        subcommandUsageText(source).ifPresent(x -> builder.append(Text.NEW_LINE).append(x));
+        subcommandUsageText(cause).ifPresent(x -> builder.append(Text.NEW_LINE).append(x));
         return builder.build();
     }
 
-    private Text createSubcommands(CommandSource source) {
+    private Text createSubcommands(Cause cause) {
         List<String> subs = Lists.newArrayList(getPrimaryAliases());
         subs.sort(Comparator.naturalOrder());
         SortedMap<String, Text> subcommandMap = Maps.newTreeMap();
         for (String element : subs) {
             Command command = get(element).get().getCommand();
-            if (command.testPermission(source)) {
-                subcommandMap.put(element, command.getShortDescription(source).orElse(Text.EMPTY));
+            if (command.testPermission(cause)) {
+                subcommandMap.put(element, command.getShortDescription(cause).orElse(Text.EMPTY));
                 this.subcommandLengths.computeIfAbsent(element, x -> PaginationCalculator.getWidth(Text.of(x)));
             }
         }
@@ -273,8 +274,9 @@ public class SpongeManagedCommand implements Command, Dispatcher {
 
         // Get the max width.
         Text.Builder builder = Text.builder().append(t("Subcommands:")).append(Text.NEW_LINE);
+        CommandSource commandSource = Command.getCommandSourceFromCause(cause).orElseGet(() -> Sponge.getServer().getConsole());
 
-        if (source instanceof ConsoleSource) {
+        if (commandSource instanceof ConsoleSource) {
             int max = subs.stream().mapToInt(String::length).max().getAsInt();
             for (Map.Entry<String, Text> el : subcommandMap.entrySet()) {
                 int add = max - el.getKey().length() + 3;
@@ -303,25 +305,26 @@ public class SpongeManagedCommand implements Command, Dispatcher {
         return builder.build();
     }
 
-    private Text parameterUsageText(CommandSource source) {
+    private Text parameterUsageText(Cause cause) {
         if (this.flags instanceof NoFlags) {
-            return this.parameters.getUsage(source);
+            return this.parameters.getUsage(cause);
         }
 
-        return Text.joinWith(CommandMessageFormatting.SPACE_TEXT, this.flags.getUsage(source), this.parameters.getUsage(source));
+        return Text.joinWith(CommandMessageFormatting.SPACE_TEXT, this.flags.getUsage(cause), this.parameters.getUsage(cause));
     }
 
-    private Optional<Text> subcommandUsageText(CommandSource source) {
+    private Optional<Text> subcommandUsageText(Cause cause) {
         List<String> aliasesToDisplay = this.primaryAliases.stream().filter(x -> {
             Command child = this.mappings.get(x).getCommand();
-            return child instanceof SpongeManagedCommand && ((SpongeManagedCommand) child).requirePermissionForChildren || child.testPermission(source);
+            return child instanceof SpongeManagedCommand && ((SpongeManagedCommand) child).requirePermissionForChildren || child.testPermission(cause);
         }).collect(Collectors.toList());
 
         if (aliasesToDisplay.isEmpty()) {
             return Optional.empty();
         }
 
-        return Optional.of(t("Subcommands: ").toBuilder().color(TextColors.RED).append(Text.of(String.join(", ", aliasesToDisplay))).build());
+        return Optional.of(t("Subcommands: ").toBuilder().color(TextColors.RED).append(Text.of(String.join(", ", aliasesToDisplay)))
+                .build());
     }
 
     void populateBuilder(SpongeCommandBuilder builder) {
@@ -338,8 +341,8 @@ public class SpongeManagedCommand implements Command, Dispatcher {
         this.mappings.forEach((alias, mapping) -> builder.child(mapping.getCommand(), mapping.getAllAliases()));
     }
 
-    private void checkPermission(CommandSource source) throws CommandPermissionException {
-        if (!testPermission(source)) {
+    private void checkPermission(Cause cause) throws CommandPermissionException {
+        if (!testPermission(cause)) {
             throw new CommandPermissionException();
         }
     }
@@ -347,15 +350,15 @@ public class SpongeManagedCommand implements Command, Dispatcher {
     /**
      * Process this command with existing arguments and context objects.
      *
-     * @param source The source to populate the context with
+     * @param cause The {@link Cause} to populate the context with
      * @param args The arguments to process with
      * @param context The context to put data in
      * @throws ArgumentParseException if an invalid argument is provided
      */
-    public void populateContext(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public void populateContext(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         // First, the flags.
-        this.flags.parse(source, args, context);
-        this.parameters.parse(source, args, context);
+        this.flags.parse(cause, args, context);
+        this.parameters.parse(cause, args, context);
     }
 
     public CommandExecutor getExecutor() {
@@ -383,10 +386,10 @@ public class SpongeManagedCommand implements Command, Dispatcher {
     }
 
     @Override
-    public Optional<? extends CommandMapping> get(String alias, @Nullable CommandSource source) {
+    public Optional<? extends CommandMapping> get(String alias, @Nullable Cause cause) {
         // No need to use a disambiguator, we don't allow multiple children with the same name.
         CommandMapping mapping = this.mappings.get(alias.toLowerCase(Locale.ENGLISH));
-        if (mapping != null && (source == null || mapping.getCommand().testPermission(source))) {
+        if (mapping != null && (cause == null || mapping.getCommand().testPermission(cause))) {
             return Optional.of(mapping);
         }
 

@@ -33,6 +33,8 @@ import org.mockito.Mockito;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
 import org.spongepowered.api.command.parameter.Parameter;
+import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.api.event.cause.EventContext;
 import org.spongepowered.common.command.parameter.token.SpongeCommandArgs;
 import org.spongepowered.common.command.parameter.token.SpongeSingleArg;
 import org.spongepowered.common.command.managed.SpongeCommandContext;
@@ -61,14 +63,14 @@ public class ParameterTest {
         // This tokenized args
         SpongeCommandArgs args = new SpongeCommandArgs(Lists.newArrayList(new SpongeSingleArg("test", 0, 4)), "test");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
         // The context should contain the argument in the context.
         Assert.assertEquals("test", context.<String>getOneUnchecked("test"));
@@ -84,14 +86,14 @@ public class ParameterTest {
         // This tokenized args
         SpongeCommandArgs args = new SpongeCommandArgs(Lists.newArrayList(new SpongeSingleArg("1", 0, 1)), "1");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
         // Get the result
         int res = context.<Integer>getOneUnchecked("test");
@@ -110,14 +112,14 @@ public class ParameterTest {
         // This tokenized args
         SpongeCommandArgs args = new SpongeCommandArgs(Lists.newArrayList(new SpongeSingleArg("a1", 0, 1)), "a1");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
     }
 
@@ -130,14 +132,14 @@ public class ParameterTest {
         // This tokenized args
         SpongeCommandArgs args = new SpongeCommandArgs(Lists.newArrayList(new SpongeSingleArg("a1", 0, 1)), "a1");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
         // The context should contain the argument in the context.
         Assert.assertEquals("a1", context.<String>getOneUnchecked("test"));
@@ -153,14 +155,14 @@ public class ParameterTest {
         // This tokenized args
         SpongeCommandArgs args = new SpongeCommandArgs(Lists.newArrayList(new SpongeSingleArg("a1", 0, 1)), "a1");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
     }
 
@@ -173,14 +175,14 @@ public class ParameterTest {
         // This tokenized args
         SpongeCommandArgs args = new SpongeCommandArgs(Lists.newArrayList(new SpongeSingleArg("a1", 0, 1)), "a1");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
         // The context should not contain the argument in the context.
         Assert.assertFalse(context.hasAny("test"));
@@ -203,14 +205,14 @@ public class ParameterTest {
                 new SpongeSingleArg("a3", 4, 5)
         ), "a1 a2 a3");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
         // The context should contain the argument in the context.
         Assert.assertTrue(context.hasAny("test"));
@@ -240,14 +242,14 @@ public class ParameterTest {
                 new SpongeSingleArg("a3", 4, 5)
         ), "a1 a2 a3");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
         // The context should contain the argument in the context.
         Assert.assertTrue(context.hasAny("test"));
@@ -277,14 +279,14 @@ public class ParameterTest {
                 new SpongeSingleArg("a3", 4, 5)
         ), "a1 a2 a3");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
     }
 
@@ -304,14 +306,14 @@ public class ParameterTest {
                 new SpongeSingleArg("a3", 4, 5)
         ), "a1 a2 a3");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
         Assert.assertTrue(context.hasAny("test"));
         Assert.assertFalse(context.hasAny("test2"));
@@ -337,14 +339,14 @@ public class ParameterTest {
                 new SpongeSingleArg("a3", 4, 5)
         ), "a1 a2 a3");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
         Assert.assertFalse(context.hasAny("test"));
         Assert.assertTrue(context.hasAny("test2"));
@@ -367,14 +369,14 @@ public class ParameterTest {
                 new SpongeSingleArg("a2", 2, 3)
         ), "a1 a2");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
         Assert.assertTrue(context.hasAny("test"));
         Assert.assertTrue(context.hasAny("test2"));
@@ -402,14 +404,14 @@ public class ParameterTest {
                 new SpongeSingleArg("b", 2, 2)
         ), "a b");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
         Assert.assertEquals("one", context.getOneUnchecked("test"));
         Assert.assertEquals("two", context.getOneUnchecked("test2"));
@@ -434,26 +436,26 @@ public class ParameterTest {
                 new SpongeSingleArg("RED", 4, 4)
         ), "one TwO RED");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
         Assert.assertEquals(TestEnum.ONE, context.getOneUnchecked("test"));
 
         // Reset context, parse, repeat
-        context = new SpongeCommandContext();
-        parameter.parse(source, args, context);
+        context = new SpongeCommandContext(cause);
+        parameter.parse(cause, args, context);
 
         Assert.assertEquals(TestEnum.TWO, context.getOneUnchecked("test"));
 
         // Reset context, parse, repeat
-        context = new SpongeCommandContext();
-        parameter.parse(source, args, context);
+        context = new SpongeCommandContext(cause);
+        parameter.parse(cause, args, context);
 
         Assert.assertEquals(TestEnum.RED, context.getOneUnchecked("test"));
 
@@ -469,18 +471,24 @@ public class ParameterTest {
         SpongeCommandArgs args = new SpongeCommandArgs(Lists.newArrayList(new SpongeSingleArg("test test test2", 0, 4)),
                 "test test test2");
 
-        // This context
-        SpongeCommandContext context = new SpongeCommandContext();
+        // This cause
+        Cause cause = getCause();
 
-        // And this source
-        CommandSource source = Mockito.mock(CommandSource.class);
+        // This context
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
         // Parse
-        parameter.parse(source, args, context);
+        parameter.parse(cause, args, context);
 
         // The context should contain the argument in the context.
         Assert.assertEquals("test test test2", context.<String>getOneUnchecked("test"));
 
     }
 
+    private Cause getCause() {
+        // And this source
+        CommandSource source = Mockito.mock(CommandSource.class);
+
+        return Cause.of(EventContext.empty(), source);
+    }
 }

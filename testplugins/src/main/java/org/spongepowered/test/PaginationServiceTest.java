@@ -101,7 +101,7 @@ public class PaginationServiceTest {
                                 .optionalWeak()
                                 .onlyOne()
                                 .build())
-                        .setExecutor((src, args) -> {
+                        .setExecutor((cause, src, args) -> {
                             this.paginationList.sendTo(src, args.<Integer>getOne("page").orElse(1));
 
                             return CommandResult.success();

@@ -31,6 +31,7 @@ import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.world.DimensionType;
 import org.spongepowered.api.world.Locatable;
 import org.spongepowered.api.world.storage.WorldProperties;
@@ -62,7 +63,7 @@ public class WorldPropertiesValueParameter extends PatternMatchingValueParameter
     }
 
     @Override
-    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context)
+    public Optional<?> getValue(Cause cause, CommandArgs args, CommandContext context)
             throws ArgumentParseException {
         final String next = args.peek();
         if (next.startsWith("#")) {
@@ -71,9 +72,9 @@ public class WorldPropertiesValueParameter extends PatternMatchingValueParameter
                 args.next();
                 return Sponge.getServer().getAllWorldProperties().stream().filter(input -> input != null && input.isEnabled())
                         .findFirst().map(x -> (Object) x);
-            } else if (specifier.equalsIgnoreCase("me") && source instanceof Locatable) {
+            } else if (specifier.equalsIgnoreCase("me") && context.getLocation().isPresent()) {
                 args.next();
-                return Optional.of(((Locatable) source).getWorld().getProperties());
+                return Optional.of(context.getLocation().get().getExtent().getProperties());
             } else {
                 boolean firstOnly = false;
                 if (specifier.endsWith(":first")) {
@@ -83,19 +84,19 @@ public class WorldPropertiesValueParameter extends PatternMatchingValueParameter
                 args.next();
 
                 @SuppressWarnings("unchecked")
-                final DimensionType type = (DimensionType) (this.dimensionParameter.getValues(source, args, specifier).iterator().next());
+                final DimensionType type = (DimensionType) (this.dimensionParameter.getValues(cause, args, specifier).iterator().next());
                 Iterable<WorldProperties> ret = Sponge.getGame().getServer().getAllWorldProperties().stream().filter(input -> input != null
                         && input.isEnabled() && input.getDimensionType().equals(type)).collect(Collectors.toList());
                 return Optional.of(firstOnly ? ret.iterator().next() : ret);
             }
         }
 
-        return super.getValue(source, args, context);
+        return super.getValue(cause, args, context);
     }
 
     @Override
-    public List<String> complete(CommandSource src, CommandArgs args, CommandContext context) {
-        Iterable<String> choices = getCompletionChoices(src);
+    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) {
+        Iterable<String> choices = getCompletionChoices(cause);
         final Optional<String> nextArg = args.nextIfPresent();
         if (nextArg.isPresent()) {
             choices = StreamSupport.stream(choices.spliterator(), false).filter(input -> getFormattedPattern(nextArg.get()).matcher(input).find())
@@ -104,13 +105,13 @@ public class WorldPropertiesValueParameter extends PatternMatchingValueParameter
         return ImmutableList.copyOf(choices);
     }
 
-    private Iterable<String> getCompletionChoices(CommandSource source) {
-        return Iterables.concat(getChoices(source), ImmutableSet.of("#first", "#me"),
+    private Iterable<String> getCompletionChoices(Cause cause) {
+        return Iterables.concat(getChoices(cause), ImmutableSet.of("#first", "#me"),
                 Sponge.getRegistry().getAllOf(DimensionType.class).stream().map(input2 -> "#" + input2.getId()).collect(Collectors.toList()));
     }
 
     @Override
-    protected Iterable<String> getChoices(CommandSource source) {
+    protected Iterable<String> getChoices(Cause cause) {
         return Sponge.getGame().getServer().getAllWorldProperties().stream()
                 .map(WorldProperties::getWorldName)
                 .collect(Collectors.toList());

@@ -24,31 +24,32 @@
  */
 package org.spongepowered.common.command.parameter;
 
-import org.spongepowered.api.command.CommandSource;
-import org.spongepowered.api.command.parameter.CommandContext;
-import org.spongepowered.api.command.parameter.token.CommandArgs;
-import org.spongepowered.api.text.Text;
-import org.spongepowered.api.text.format.TextColors;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
+import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.managed.ParsingContext;
 import org.spongepowered.api.command.parameter.managed.ValueParameter;
 import org.spongepowered.api.command.parameter.managed.ValueParameterModifier;
+import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.api.text.Text;
+import org.spongepowered.api.text.format.TextColors;
 
 import java.util.ListIterator;
+import java.util.Optional;
 
 public class SpongeParsingContext implements ParsingContext {
 
     private final Text key;
-    private final CommandSource source;
+    private final Cause cause;
     private final CommandArgs args;
     private final CommandContext context;
     private final ListIterator<ValueParameterModifier> modifierListIterator;
     private final ValueParameter valueParameter;
 
-    SpongeParsingContext(Text key, CommandSource source, CommandArgs args, CommandContext context,
+    SpongeParsingContext(Text key, Cause cause, CommandArgs args, CommandContext context,
             ListIterator<ValueParameterModifier> modifierListIterator, ValueParameter valueParameter) {
         this.key = key;
-        this.source = source;
+        this.cause = cause;
         this.args = args;
         this.context = context;
         this.modifierListIterator = modifierListIterator;
@@ -59,13 +60,25 @@ public class SpongeParsingContext implements ParsingContext {
     public void next() throws ArgumentParseException {
         if (this.modifierListIterator.hasNext()) {
             try {
-                this.modifierListIterator.next().onParse(this.key, this.source, this.args, this.context, this);
+                this.modifierListIterator.next().onParse(this.key, this.cause, this.args, this.context, this);
             } finally {
                 this.modifierListIterator.previous();
             }
         } else {
-            this.context.putEntry(this.key, this.valueParameter.getValue(this.source, this.args, this.context).orElseThrow(() ->
-                    args.createError(Text.of(TextColors.RED, "Could not parse result for ", this.key))));
+            if (this.args.hasNext() && this.args.peek().startsWith("@")) {
+                CommandArgs.State argsState = this.args.getState();
+                CommandContext.State contextState = this.context.getState();
+                Optional<?> result = this.valueParameter.parseSelector(this.cause, this.args.next(), this.context, args::createError);
+                if (result.isPresent()) {
+                    this.context.putEntry(this.key, result.get());
+                    return;
+                }
+
+                this.args.setState(argsState);
+                this.context.setState(contextState);
+            }
+            this.context.putEntry(this.key, this.valueParameter.getValue(this.cause, this.args, this.context).orElseThrow(() ->
+                    this.args.createError(Text.of(TextColors.RED, "Could not parse result for ", this.key))));
         }
     }
 }

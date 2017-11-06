@@ -28,25 +28,27 @@ import static org.spongepowered.common.util.SpongeCommonTranslationHelper.t;
 
 import com.google.common.collect.ImmutableList;
 import org.spongepowered.api.Sponge;
-import org.spongepowered.api.command.CommandSource;
-import org.spongepowered.api.command.parameter.managed.impl.SelectorValueParameter;
-import org.spongepowered.api.entity.living.player.Player;
+import org.spongepowered.api.command.parameter.ArgumentParseException;
+import org.spongepowered.api.command.parameter.CommandContext;
+import org.spongepowered.api.command.parameter.managed.impl.PatternMatchingValueParameter;
+import org.spongepowered.api.command.parameter.managed.standard.CatalogedSelectorParsers;
+import org.spongepowered.api.command.parameter.managed.standard.CatalogedValueParameter;
 import org.spongepowered.api.entity.living.player.User;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.profile.GameProfile;
 import org.spongepowered.api.service.user.UserStorageService;
-import org.spongepowered.api.command.parameter.managed.standard.CatalogedValueParameter;
 import org.spongepowered.api.text.Text;
 
 import java.util.Optional;
+import java.util.function.Function;
 
-public class UserValueParameter extends SelectorValueParameter implements CatalogedValueParameter {
+public class UserValueParameter extends PatternMatchingValueParameter implements CatalogedValueParameter {
 
     private final PlayerValueParameter element;
     private final String name;
     private final String id;
 
     public UserValueParameter(String id, String name, PlayerValueParameter element) {
-        super(Player.class);
         this.id = id;
         this.name = name;
         this.element = element;
@@ -68,7 +70,7 @@ public class UserValueParameter extends SelectorValueParameter implements Catalo
     }
 
     @Override
-    protected Iterable<String> getChoices(CommandSource source) {
+    protected Iterable<String> getChoices(Cause cause) {
         return Sponge.getServiceManager().provideUnchecked(UserStorageService.class).getAll().stream()
             .map(GameProfile::getName)
             .filter(Optional::isPresent)
@@ -89,5 +91,11 @@ public class UserValueParameter extends SelectorValueParameter implements Catalo
     @Override
     public String getName() {
         return this.name;
+    }
+
+    @Override
+    public Optional<?> parseSelector(Cause cause, String selector, CommandContext context, Function<Text, ArgumentParseException> errorFunction)
+            throws ArgumentParseException {
+        return CatalogedSelectorParsers.PLAYERS.parseSelector(cause, selector, context, errorFunction);
     }
 }

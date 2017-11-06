@@ -26,6 +26,7 @@ package org.spongepowered.common.command.parameter.modifier;
 
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
@@ -45,7 +46,7 @@ public class OptionalWeakModifier implements CatalogedValueParameterModifier {
     }
 
     @Override
-    public void onParse(Text key, CommandSource source, CommandArgs args, CommandContext context, ParsingContext parsingContext)
+    public void onParse(Text key, Cause cause, CommandArgs args, CommandContext context, ParsingContext parsingContext)
             throws ArgumentParseException {
         if (args.hasNext()) {
             CommandArgs.State state = args.getState();

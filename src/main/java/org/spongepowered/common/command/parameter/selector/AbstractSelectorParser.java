@@ -22,51 +22,56 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.command.parameter.value;
+package org.spongepowered.common.command.parameter.selector;
 
-import static org.spongepowered.common.util.SpongeCommonTranslationHelper.t;
+import static org.spongepowered.api.util.SpongeApiTranslationHelper.t;
 
-import net.minecraft.entity.player.EntityPlayerMP;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
 import org.spongepowered.api.command.parameter.CommandContext;
-import org.spongepowered.api.command.parameter.managed.impl.PatternMatchingValueParameter;
-import org.spongepowered.api.command.parameter.managed.standard.CatalogedSelectorParsers;
-import org.spongepowered.api.command.parameter.managed.standard.CatalogedValueParameter;
+import org.spongepowered.api.command.parameter.managed.standard.CatalogedSelectorParser;
+import org.spongepowered.api.entity.Entity;
 import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
-import org.spongepowered.common.SpongeImpl;
+import org.spongepowered.api.text.selector.Selector;
 
-import java.util.Arrays;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
-public class PlayerValueParameter extends PatternMatchingValueParameter implements CatalogedValueParameter {
+abstract class AbstractSelectorParser implements CatalogedSelectorParser {
 
     private final String id;
     private final String name;
+    private final Class<? extends Entity> entityTarget;
 
-    public PlayerValueParameter(String id, String name) {
+    AbstractSelectorParser(String id, String name, Class<? extends Entity> entityTarget) {
         this.id = id;
         this.name = name;
+        this.entityTarget = entityTarget;
     }
 
     @Override
-    protected Iterable<String> getChoices(Cause cause) {
-        return Arrays.asList(SpongeImpl.getServer().getPlayerList().getOnlinePlayerNames());
-    }
+    public final Optional<?> parseSelector(Cause cause, String selector, CommandContext context, Function<Text, ArgumentParseException> errorFunction)
+            throws ArgumentParseException {
+        try {
+            Set<Entity> entities;
+            if (context.getLocation().isPresent()) {
+                entities = Selector.parse(selector).resolve(context.getLocation().get());
+            } else if (context.getCommandSource().isPresent()) {
+                entities = Selector.parse(selector).resolve(context.getCommandSource().get());
+            } else {
+                throw errorFunction.apply(t("Cannot use selectors with this cause."));
+            }
 
-    @Override
-    protected Object getValue(String choice) throws IllegalArgumentException {
-        EntityPlayerMP ret = SpongeImpl.getServer().getPlayerList().getPlayerByUsername(choice);
-        if (ret == null) {
-            throw new IllegalArgumentException("Input value " + choice + " was not a player");
+            if (!entities.stream().allMatch(this.entityTarget::isInstance)) {
+                throw errorFunction.apply(t("The selector returned entities that are not valid for this argument."));
+            }
+
+            // No need to cast in this case.
+            return Optional.of(entities);
+        } catch (IllegalArgumentException ex) {
+            throw errorFunction.apply(Text.of(ex.getMessage()));
         }
-        return ret;
-    }
-
-    @Override
-    protected Text noChoicesError(String unformattedPattern) {
-        return t("The input \"%s\" did not match any online players", unformattedPattern);
     }
 
     @Override
@@ -77,11 +82,5 @@ public class PlayerValueParameter extends PatternMatchingValueParameter implemen
     @Override
     public String getName() {
         return this.name;
-    }
-
-    @Override
-    public Optional<?> parseSelector(Cause cause, String selector, CommandContext context, Function<Text, ArgumentParseException> errorFunction)
-            throws ArgumentParseException {
-        return CatalogedSelectorParsers.PLAYERS.parseSelector(cause, selector, context, errorFunction);
     }
 }

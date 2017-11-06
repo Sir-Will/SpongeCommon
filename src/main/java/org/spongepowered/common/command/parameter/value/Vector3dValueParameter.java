@@ -30,10 +30,12 @@ import com.google.common.collect.ImmutableSet;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
 import org.spongepowered.api.entity.Entity;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.util.StartsWithPredicate;
 import org.spongepowered.api.util.blockray.BlockRay;
 import org.spongepowered.api.util.blockray.BlockRayHit;
 import org.spongepowered.api.world.Locatable;
+import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
@@ -60,7 +62,7 @@ public class Vector3dValueParameter implements CatalogedValueParameter {
     }
 
     @Override
-    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context)
+    public Optional<?> getValue(Cause cause, CommandArgs args, CommandContext context)
             throws ArgumentParseException {
         String xStr;
         String yStr;
@@ -74,9 +76,9 @@ public class Vector3dValueParameter implements CatalogedValueParameter {
             xStr = split[0];
             yStr = split[1];
             zStr = split[2];
-        } else if (xStr.equals("#target") && source instanceof Entity) {
+        } else if (xStr.equals("#target") && context.getEntityTarget().isPresent()) {
             Optional<BlockRayHit<World>> hit = BlockRay
-                    .from(((Entity) source))
+                    .from(context.getEntityTarget().get())
                     .stopFilter(BlockRay.continueAfterFilter(BlockRay.onlyAirFilter(), 1))
                     .build()
                     .end();
@@ -84,21 +86,22 @@ public class Vector3dValueParameter implements CatalogedValueParameter {
                 throw args.createError(t("No target block is available! Stop stargazing!"));
             }
             return hit.map(BlockRayHit::getPosition);
-        } else if (xStr.equalsIgnoreCase("#me") && source instanceof Locatable) {
-            return Optional.of(((Locatable) source).getLocation().getPosition());
+        } else if (xStr.equalsIgnoreCase("#me") && context.getLocation().isPresent()) {
+            return Optional.of(context.getLocation().get().getPosition());
         } else {
             yStr = args.next();
             zStr = args.next();
         }
-        final double x = parseRelativeDouble(args, xStr, source instanceof Locatable ? ((Locatable) source).getLocation().getX() : null);
-        final double y = parseRelativeDouble(args, yStr, source instanceof Locatable ? ((Locatable) source).getLocation().getY() : null);
-        final double z = parseRelativeDouble(args, zStr, source instanceof Locatable ? ((Locatable) source).getLocation().getZ() : null);
+        Optional<Location<World>> worldLocation = context.getLocation();
+        final double x = parseRelativeDouble(args, xStr, worldLocation.map(Location::getX).orElse(null));
+        final double y = parseRelativeDouble(args, yStr, worldLocation.map(Location::getY).orElse(null));
+        final double z = parseRelativeDouble(args, zStr, worldLocation.map(Location::getZ).orElse(null));
 
         return Optional.of(new Vector3d(x, y, z));
     }
 
     @Override
-    public List<String> complete(CommandSource src, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         Optional<String> arg = args.nextIfPresent();
         // Traverse through the possible arguments. We can't really complete arbitrary integers
         if (arg.isPresent()) {

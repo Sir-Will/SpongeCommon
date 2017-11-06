@@ -29,6 +29,7 @@ import org.spongepowered.api.command.CommandMessageFormatting;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.format.CommandMessageFormats;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
@@ -45,7 +46,7 @@ public class RepeatedModifier implements ValueParameterModifier {
     }
 
     @Override
-    public void onParse(Text key, CommandSource source, CommandArgs args, CommandContext context, ParsingContext parsingContext)
+    public void onParse(Text key, Cause cause, CommandArgs args, CommandContext context, ParsingContext parsingContext)
             throws ArgumentParseException {
         for (int count = 0; count < this.numberOfRepetitions; count++) {
             parsingContext.next();
@@ -54,7 +55,7 @@ public class RepeatedModifier implements ValueParameterModifier {
     }
 
     @Override
-    public Text getUsage(Text key, CommandSource source, Text currentUsage) {
+    public Text getUsage(Text key, Cause cause, Text currentUsage) {
         Text.Builder repeatedBuilder = Text.builder();
         for (int i = 0; i < this.numberOfRepetitions; i++) {
             if (i > 0) {

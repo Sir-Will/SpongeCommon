@@ -29,11 +29,12 @@ import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
 import org.spongepowered.api.command.parameter.flag.UnknownFlagBehavior;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 
 public class SkipBehavior implements UnknownFlagBehavior {
 
     @Override
-    public void parse(CommandSource source, CommandArgs args, CommandContext context, CommandArgs.State tokenizedArgsPreviousState,
+    public void parse(Cause cause, CommandArgs args, CommandContext context, CommandArgs.State tokenizedArgsPreviousState,
             CommandContext.State contextPreviousState, String flag) throws ArgumentParseException {
         // Just skip the element
     }

@@ -28,29 +28,31 @@ import static org.spongepowered.common.util.SpongeCommonTranslationHelper.t;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandException;
 import org.spongepowered.api.command.CommandMapping;
+import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
+import org.spongepowered.api.command.IncorrectCommandSourceException;
+import org.spongepowered.api.command.managed.TargetedCommandExecutor;
+import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.token.InputTokenizer;
 import org.spongepowered.api.command.parameter.token.InputTokenizers;
 import org.spongepowered.api.command.managed.ChildExceptionBehavior;
 import org.spongepowered.api.command.managed.ChildExceptionBehaviors;
 import org.spongepowered.api.command.managed.CommandExecutor;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.plugin.PluginContainer;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.command.parameter.flag.Flags;
-import org.spongepowered.api.util.Tuple;
-import org.spongepowered.common.SpongeImpl;
 import org.spongepowered.common.command.parameter.flag.NoFlags;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -59,7 +61,7 @@ import java.util.function.Function;
 
 public class SpongeCommandBuilder implements Command.Builder {
 
-    private static final Function<CommandSource, Optional<Text>> EMPTY_DESCRIPTION = commandSource -> Optional.empty();
+    private static final Function<Cause, Optional<Text>> EMPTY_DESCRIPTION = cause -> Optional.empty();
 
     private List<Parameter> parameters = Lists.newArrayList();
     private final Map<String, Command> children = Maps.newHashMap();
@@ -68,9 +70,10 @@ public class SpongeCommandBuilder implements Command.Builder {
     @Nullable private CommandExecutor executor = null;
     @Nullable private Flags flags = null;
     @Nullable private String permission = null;
-    private Function<CommandSource, Optional<Text>> shortDescription = EMPTY_DESCRIPTION;
-    private Function<CommandSource, Optional<Text>> extendedDescription = EMPTY_DESCRIPTION;
+    private Function<Cause, Optional<Text>> shortDescription = EMPTY_DESCRIPTION;
+    private Function<Cause, Optional<Text>> extendedDescription = EMPTY_DESCRIPTION;
     private boolean requirePermissionForChildren = true;
+    @Nullable private Text targetedExecutorError = null;
 
     private static final CommandExecutor SUBCOMMAND_ONLY_EXECUTOR = (s, c) -> {
         throw new CommandException(t("This command requires a subcommand."), true);
@@ -107,7 +110,32 @@ public class SpongeCommandBuilder implements Command.Builder {
     }
 
     @Override
-    public Command.Builder setExtendedDescription(Function<CommandSource, Optional<Text>> extendedDescriptionFunction) {
+    public Command.Builder setExecutor(TargetedCommandExecutor<CommandSource> executor) {
+        this.executor = (cause, context) -> executor.execute(
+                cause,
+                context.getCommandSource().orElseGet(() -> Sponge.getServer().getConsole()),
+                context);
+        return this;
+    }
+
+    @Override
+    public <T extends CommandSource> Command.Builder targetedExecutor(TargetedCommandExecutor<T> executor, Class<T> sourceType) {
+        if (!(this.executor instanceof SpongeTargetCommandExecutor)) {
+            this.executor = new SpongeTargetCommandExecutor();
+        }
+
+        ((SpongeTargetCommandExecutor) this.executor).addExecutor(executor, sourceType);
+        return this;
+    }
+
+    @Override
+    public Command.Builder setTargetedExecutorErrorMessage(Text targetedExecutorError) {
+        this.targetedExecutorError = targetedExecutorError;
+        return this;
+    }
+
+    @Override
+    public Command.Builder setExtendedDescription(Function<Cause, Optional<Text>> extendedDescriptionFunction) {
         this.extendedDescription = extendedDescriptionFunction;
         return this;
     }
@@ -136,7 +164,8 @@ public class SpongeCommandBuilder implements Command.Builder {
         return this;
     }
 
-    @Override public Command.Builder setShortDescription(Function<CommandSource, Optional<Text>> descriptionFunction) {
+    @Override
+    public Command.Builder setShortDescription(Function<Cause, Optional<Text>> descriptionFunction) {
         this.shortDescription = descriptionFunction;
         return this;
     }
@@ -192,4 +221,44 @@ public class SpongeCommandBuilder implements Command.Builder {
         return this;
     }
 
+    static class SpongeTargetCommandExecutor implements CommandExecutor {
+
+        private final List<Executor<? extends CommandSource>> executors = Lists.newArrayList();
+
+        <T extends CommandSource> void addExecutor(TargetedCommandExecutor<T> executor, Class<T> clazz) {
+            this.executors.add(new Executor<>(clazz, executor));
+        }
+
+        @Override
+        public CommandResult execute(Cause cause, CommandContext context) throws CommandException {
+            CommandSource source = context.getCommandSource().orElseGet(() -> Sponge.getServer().getConsole());
+            for (Executor<? extends CommandSource> executor : this.executors) {
+                if (executor.canExecute(source)) {
+                    return executor.execute(cause, source, context);
+                }
+            }
+
+            throw new IncorrectCommandSourceException();
+        }
+    }
+
+    static class Executor<T extends CommandSource> {
+
+        private final Class<T> clazz;
+        private final TargetedCommandExecutor<T> executor;
+
+        Executor(Class<T> clazz, TargetedCommandExecutor<T> executor) {
+            this.clazz = clazz;
+            this.executor = executor;
+        }
+
+        boolean canExecute(CommandSource source) {
+            return this.clazz.isInstance(source);
+        }
+
+        @SuppressWarnings("unchecked")
+        CommandResult execute(Cause cause, CommandSource source, CommandContext context) throws CommandException {
+            return this.executor.execute(cause, (T) source, context);
+        }
+    }
 }

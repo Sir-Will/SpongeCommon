@@ -47,15 +47,21 @@ import org.spongepowered.api.command.format.CommandMessageFormats;
 import org.spongepowered.api.event.CauseStackManager;
 import org.spongepowered.api.event.CauseStackManager.StackFrame;
 import org.spongepowered.api.event.SpongeEventFactory;
+import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.api.event.cause.EventContextKey;
+import org.spongepowered.api.event.cause.EventContextKeys;
 import org.spongepowered.api.event.command.CommandExecutionEvent;
 import org.spongepowered.api.event.command.TabCompleteEvent;
 import org.spongepowered.api.plugin.PluginContainer;
+import org.spongepowered.api.service.permission.Subject;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.action.TextActions;
 import org.spongepowered.api.text.serializer.TextSerializers;
 import org.spongepowered.api.util.TextMessageException;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
+import org.spongepowered.common.SpongeImpl;
+import org.spongepowered.common.event.SpongeCauseStackManager;
 import org.spongepowered.common.event.tracking.phase.general.CommandPhaseContext;
 import org.spongepowered.common.event.tracking.phase.general.GeneralPhase;
 
@@ -263,8 +269,8 @@ public class SpongeCommandManager implements CommandManager {
     }
 
     @Override
-    public Optional<? extends CommandMapping> get(String alias, @Nullable CommandSource source) {
-        return this.dispatcher.get(alias, source);
+    public Optional<? extends CommandMapping> get(String alias, @Nullable Cause cause) {
+        return this.dispatcher.get(alias, cause);
     }
 
     @Override
@@ -293,25 +299,20 @@ public class SpongeCommandManager implements CommandManager {
     }
 
     @Override
-    public CommandResult process(CommandSource source, String commandLine) {
+    public CommandResult process(Cause cause, String commandLine) {
         String[] argSplit = commandLine.split(" ", 2);
         if (argSplit.length == 1) {
             argSplit = new String[] { argSplit[0], "" };
         }
 
-        final CommandExecutionEvent.Pre event;
-        try (CauseStackManager.StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame()) {
-            frame.pushCause(source);
-
-            // Note, change this once SendCommandEvent is removed
-            event = SpongeEventFactory.createSendCommandEvent(
-                    frame.getCurrentCause(),
-                    argSplit[1],
-                    argSplit[0],
-                    CommandResult.empty()
-            );
-            Sponge.getGame().getEventManager().post(event);
-        }
+        // Note, change this once SendCommandEvent is removed
+        final CommandExecutionEvent.Pre event = SpongeEventFactory.createSendCommandEvent(
+                cause,
+                argSplit[1],
+                argSplit[0],
+                CommandResult.empty()
+        );
+        Sponge.getGame().getEventManager().post(event);
 
         if (event.isCancelled()) {
             return event.getResult();
@@ -327,17 +328,30 @@ public class SpongeCommandManager implements CommandManager {
 
         CommandResult result = CommandResult.empty();
         Optional<CommandMapping> mapping = this.dispatcher.get(argSplit[0]);
+
+        final CommandExecutionEvent.Selected selectedEvent = SpongeEventFactory.createCommandExecutionEventSelected(
+                cause,
+                argSplit[1],
+                argSplit[0],
+                mapping,
+                CommandResult.empty()
+        );
+        Sponge.getGame().getEventManager().post(selectedEvent);
+
+        if (selectedEvent.isCancelled()) {
+            return event.getResult();
+        }
+
         Throwable throwable = null;
         try {
             try (StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame();
                  // Since we know we are in the main thread, this is safe to do without a thread check
                  CommandPhaseContext context = GeneralPhase.State.COMMAND.createPhaseContext()
-                         .source(source)
+                         .source(cause.root())
                          .addCaptures()
                          .addEntityDropCaptures()
                          .buildAndSwitch()) {
-                Sponge.getCauseStackManager().pushCause(source);
-                result = this.dispatcher.process(source, commandLine);
+                result = this.dispatcher.process(cause, commandLine);
             } catch (InvocationCommandException ex) {
                 if (ex.getCause() != null) {
                     throw ex.getCause();
@@ -345,17 +359,18 @@ public class SpongeCommandManager implements CommandManager {
             } catch (CommandPermissionException ex) {
                 Text text = ex.getText();
                 if (text != null) {
-                    source.sendMessage(CommandMessageFormats.ERROR.applyFormat(text));
+                    getSource(cause).sendMessage(CommandMessageFormats.ERROR.applyFormat(text));
                 }
             } catch (CommandException ex) {
                 Text text = ex.getText();
+                CommandSource source = getSource(cause);
                 if (text != null) {
                     source.sendMessage(CommandMessageFormats.ERROR.applyFormat(text));
                 }
 
                 if (ex.shouldIncludeUsage() && mapping.isPresent()) {
                     source.sendMessage(CommandMessageFormats.ERROR.applyFormat(
-                            t("Usage: /%s %s", argSplit[0], mapping.get().getCommand().getUsage(source))));
+                                    t("Usage: /%s %s", argSplit[0], mapping.get().getCommand().getUsage(cause))));
                 }
             }
         } catch (Throwable thr) {
@@ -367,7 +382,9 @@ public class SpongeCommandManager implements CommandManager {
             } else {
                 excBuilder = Text.builder(String.valueOf(thr.getMessage()));
             }
-            if (source.hasPermission("sponge.debug.hover-stacktrace")) {
+            Subject subject = Command.getSubjectFromCause(cause).orElseGet(() -> Sponge.getServer().getConsole());
+            CommandSource source = getSource(cause);
+            if (subject.hasPermission("sponge.debug.hover-stacktrace")) {
                 final StringWriter writer = new StringWriter();
                 thr.printStackTrace(new PrintWriter(writer));
                 excBuilder.onHover(TextActions.showText(Text.of(writer.toString()
@@ -380,44 +397,54 @@ public class SpongeCommandManager implements CommandManager {
                     .valueOf(thr.getMessage()))), thr);
         }
 
-        try (CauseStackManager.StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame()) {
-            frame.pushCause(source);
+        CommandExecutionEvent.Post postEvent = SpongeEventFactory.createCommandExecutionEventPost(
+                cause,
+                result,
+                result,
+                argSplit[1],
+                argSplit[0],
+                mapping,
+                Optional.ofNullable(throwable)
+        );
+        Sponge.getGame().getEventManager().post(postEvent);
+        return postEvent.getResult();
+    }
 
-            CommandExecutionEvent.Post postEvent = SpongeEventFactory.createCommandExecutionEventPost(
-                    frame.getCurrentCause(),
-                    result,
-                    result,
-                    argSplit[1],
-                    argSplit[0],
-                    mapping,
-                    Optional.ofNullable(throwable)
-            );
-            Sponge.getGame().getEventManager().post(event);
-            return postEvent.getResult();
+    @Override
+    public List<String> getSuggestions(String arguments, @Nullable Location<World> targetPosition) {
+        return getSuggestions(Sponge.getCauseStackManager().getCurrentCause(), arguments, targetPosition);
+    }
+
+    @Override
+    public List<String> getSuggestions(CommandSource commandSource, String arguments, @Nullable Location<World> targetPosition) {
+        try (SpongeCauseStackManager.StackFrame frame = SpongeImpl.getCauseStackManager().pushCauseFrame()) {
+            frame.addContext(EventContextKeys.COMMAND_SOURCE, commandSource);
+            frame.addContext(EventContextKeys.COMMAND_PERMISSION_SUBJECT, commandSource);
+            return getSuggestions(frame.getCurrentCause(), arguments, targetPosition);
         }
     }
 
     @Override
-    public List<String> getSuggestions(CommandSource src, String arguments, @Nullable Location<World> targetPosition) {
-        return this.getSuggestions(src, arguments, targetPosition, false);
+    public List<String> getSuggestions(Cause cause, String arguments, @Nullable Location<World> targetPosition) {
+        return this.getSuggestions(cause, arguments, targetPosition, false);
     }
 
-    public List<String> getSuggestions(CommandSource src, String arguments, @Nullable Location<World> targetPosition, boolean usingBlock) {
+    public List<String> getSuggestions(Cause cause, String arguments, @Nullable Location<World> targetPosition, boolean usingBlock) {
         try {
             final String[] argSplit = arguments.split(" ", 2);
-            List<String> suggestions = new ArrayList<>(this.dispatcher.getSuggestions(src, arguments, targetPosition));
-            Sponge.getCauseStackManager().pushCause(src);
+            List<String> suggestions = new ArrayList<>(this.dispatcher.getSuggestions(cause, arguments, targetPosition));
             final TabCompleteEvent.Command event = SpongeEventFactory.createTabCompleteEventCommand(Sponge.getCauseStackManager().getCurrentCause(),
-                    ImmutableList.copyOf(suggestions), suggestions, argSplit.length > 1 ? argSplit[1] : "", argSplit[0], arguments, Optional.ofNullable(targetPosition), usingBlock); // TODO zml: Should this be exposed in the API?
+                    ImmutableList.copyOf(suggestions), suggestions, argSplit.length > 1 ? argSplit[1] : "",
+                        argSplit[0], arguments, Optional.ofNullable(targetPosition), usingBlock);
             Sponge.getGame().getEventManager().post(event);
-            Sponge.getCauseStackManager().popCause();
             if (event.isCancelled()) {
                 return ImmutableList.of();
             }
             return ImmutableList.copyOf(event.getTabCompletions());
         } catch (Exception e) {
             if (e instanceof CommandException) {
-                src.sendMessage(CommandMessageFormats.ERROR.applyFormat(t("Error getting suggestions: %s", ((CommandException) e).getText())));
+                getSource(cause).sendMessage(
+                        CommandMessageFormats.ERROR.applyFormat(t("Error getting suggestions: %s", ((CommandException) e).getText())));
                 return Collections.emptyList();
             }
             throw new RuntimeException(String.format("Error occurred while tab completing '%s'", arguments), e);
@@ -425,23 +452,23 @@ public class SpongeCommandManager implements CommandManager {
     }
 
     @Override
-    public boolean testPermission(CommandSource source) {
-        return this.dispatcher.testPermission(source);
+    public boolean testPermission(Cause cause) {
+        return this.dispatcher.testPermission(cause);
     }
 
     @Override
-    public Optional<Text> getShortDescription(CommandSource source) {
-        return this.dispatcher.getShortDescription(source);
+    public Optional<Text> getShortDescription(Cause cause) {
+        return this.dispatcher.getShortDescription(cause);
     }
 
     @Override
-    public Optional<Text> getHelp(CommandSource source) {
-        return this.dispatcher.getHelp(source);
+    public Optional<Text> getHelp(Cause cause) {
+        return this.dispatcher.getHelp(cause);
     }
 
     @Override
-    public Text getUsage(CommandSource source) {
-        return this.dispatcher.getUsage(source);
+    public Text getUsage(Cause cause) {
+        return this.dispatcher.getUsage(cause);
     }
 
     @Override
@@ -449,4 +476,21 @@ public class SpongeCommandManager implements CommandManager {
         return this.dispatcher.size();
     }
 
+    @Override
+    public CommandResult process(String arguments) {
+        return process(Sponge.getCauseStackManager().getCurrentCause(), arguments);
+    }
+
+    @Override
+    public CommandResult process(CommandSource commandSource, String arguments) {
+        try (SpongeCauseStackManager.StackFrame frame = SpongeImpl.getCauseStackManager().pushCauseFrame()) {
+            frame.addContext(EventContextKeys.COMMAND_SOURCE, commandSource);
+            frame.addContext(EventContextKeys.COMMAND_PERMISSION_SUBJECT, commandSource);
+            return process(frame.getCurrentCause(), arguments);
+        }
+    }
+
+    private static CommandSource getSource(Cause cause) {
+        return Command.getCommandSourceFromCause(cause).orElseGet(() -> Sponge.getServer().getConsole());
+    }
 }

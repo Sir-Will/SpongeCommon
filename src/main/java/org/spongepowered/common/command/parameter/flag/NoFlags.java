@@ -24,12 +24,17 @@
  */
 package org.spongepowered.common.command.parameter.flag;
 
+import com.google.common.collect.ImmutableList;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
 import org.spongepowered.api.command.parameter.flag.Flags;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Dummy class for use when no flags are specified.
@@ -41,12 +46,17 @@ public class NoFlags implements Flags {
     private NoFlags() {}
 
     @Override
-    public void parse(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public void parse(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
 
     }
 
     @Override
-    public Text getUsage(CommandSource src) {
+    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public Text getUsage(Cause cause) {
         return Text.EMPTY;
     }
 

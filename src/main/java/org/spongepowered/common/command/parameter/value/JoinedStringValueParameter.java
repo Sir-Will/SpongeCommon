@@ -28,6 +28,7 @@ import com.google.common.collect.Lists;
 import org.spongepowered.api.command.CommandMessageFormatting;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.CommandContext;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
 import org.spongepowered.api.command.parameter.managed.standard.CatalogedValueParameter;
@@ -49,12 +50,12 @@ public class JoinedStringValueParameter implements CatalogedValueParameter {
     }
 
     @Override
-    public List<String> complete(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         return Lists.newArrayList();
     }
 
     @Override
-    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context)
+    public Optional<?> getValue(Cause cause, CommandArgs args, CommandContext context)
             throws ArgumentParseException {
         final StringBuilder ret = new StringBuilder(args.next());
         while (args.hasNext()) {
@@ -64,7 +65,7 @@ public class JoinedStringValueParameter implements CatalogedValueParameter {
     }
 
     @Override
-    public Text getUsage(Text key, CommandSource source) {
+    public Text getUsage(Text key, Cause cause) {
         return Text.of(key, CommandMessageFormatting.ELLIPSIS_TEXT);
     }
 }

@@ -63,14 +63,12 @@ public class ScaledHealthTest {
         return Command.builder()
             .parameters(Parameter.doubleNumber().onlyOne().setKey(health).build())
             .setShortDescription(Text.of(TextColors.AQUA, "Sets your maximum health"))
-            .setExecutor((src, args) -> {
-                if (!(src instanceof Player)) {
-                    return CommandResult.empty();
-                }
+            .setTargetedExecutorErrorMessage(Text.of("This can only be executed by players"))
+            .targetedExecutor((cause, player, args) -> {
                 final double newHealth = args.<Double>getOneUnchecked(health);
-                ((Player) src).offer(Keys.MAX_HEALTH, newHealth);
+                player.offer(Keys.MAX_HEALTH, newHealth);
                 return CommandResult.success();
-            })
+            }, Player.class)
             .build();
     }
 
@@ -79,14 +77,12 @@ public class ScaledHealthTest {
         return Command.builder()
             .parameters(Parameter.doubleNumber().onlyOne().setKey(health).build())
             .setShortDescription(Text.of(TextColors.AQUA, "Sets your health"))
-            .setExecutor((src, args) -> {
-                if (!(src instanceof Player)) {
-                    return CommandResult.empty();
-                }
+            .setTargetedExecutorErrorMessage(Text.of("This can only be executed by players"))
+            .targetedExecutor((cause, player, args) -> {
                 final double newHealth = args.<Double>getOneUnchecked(health);
-                ((Player) src).offer(Keys.HEALTH, newHealth);
+                player.offer(Keys.HEALTH, newHealth);
                 return CommandResult.success();
-            })
+            }, Player.class)
             .build();
     }
 
@@ -95,29 +91,26 @@ public class ScaledHealthTest {
         return Command.builder()
             .parameters(Parameter.doubleNumber().onlyOne().setKey(healthText).build())
             .setShortDescription(Text.of(TextColors.AQUA, "Sets your health scale"))
-            .setExecutor(((src, args) -> {
-                if (!(src instanceof Player)) {
-                    return CommandResult.empty();
-                }
+            .setTargetedExecutorErrorMessage(Text.of("This can only be executed by players"))
+            .targetedExecutor((cause, player, args) -> {
                 final double health = args.<Double>getOneUnchecked(Text.of(healthText));
-                ((Player) src).offer(Keys.HEALTH_SCALE, health);
+                player.offer(Keys.HEALTH_SCALE, health);
 
                 return CommandResult.success();
-            }))
+            }, Player.class)
             .build();
     }
 
     private static Command getShowHealth() {
         return Command.builder()
             .setShortDescription(Text.of(TextColors.AQUA, "Shows your health"))
-            .setExecutor(((src, args) -> {
-                if (!(src instanceof Player)) {
-                    return CommandResult.empty();
-                }
-                src.sendMessage(Text.of(TextColors.DARK_GREEN, TextStyles.BOLD, "Health: ", TextColors.RED, TextStyles.NONE, ((Player) src).get(
-                    Keys.HEALTH).orElse(0D)));
+            .setTargetedExecutorErrorMessage(Text.of("This can only be executed by players"))
+            .targetedExecutor((cause, player, args) -> {
+                player.sendMessage(Text.of(
+                        TextColors.DARK_GREEN, TextStyles.BOLD, "Health: ",
+                        TextColors.RED, TextStyles.NONE, player.get(Keys.HEALTH).orElse(0D)));
                 return CommandResult.success();
-            }))
+            }, Player.class)
             .build();
     }
 

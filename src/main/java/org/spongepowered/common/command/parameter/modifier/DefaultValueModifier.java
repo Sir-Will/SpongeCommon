@@ -31,6 +31,7 @@ import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.managed.ParsingContext;
 import org.spongepowered.api.command.parameter.managed.ValueParameterModifier;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 
 import java.util.Optional;
@@ -38,14 +39,14 @@ import java.util.function.Function;
 
 public class DefaultValueModifier implements ValueParameterModifier {
 
-    private final Function<CommandSource, Optional<?>> defaultValueFunction;
+    private final Function<Cause, Optional<?>> defaultValueFunction;
 
-    public DefaultValueModifier(Function<CommandSource, Optional<?>> defaultValueFunction) {
+    public DefaultValueModifier(Function<Cause, Optional<?>> defaultValueFunction) {
         this.defaultValueFunction = defaultValueFunction;
     }
 
     @Override
-    public void onParse(Text key, CommandSource source, CommandArgs args, CommandContext context, ParsingContext parsingContext)
+    public void onParse(Text key, Cause cause, CommandArgs args, CommandContext context, ParsingContext parsingContext)
             throws ArgumentParseException {
         if (args.hasNext()) {
             CommandArgs.State state = args.getState();
@@ -56,21 +57,21 @@ public class DefaultValueModifier implements ValueParameterModifier {
                 args.setState(state);
                 context.setState(contextState);
 
-                context.putEntry(key, this.defaultValueFunction.apply(source).orElseThrow(() -> ex));
+                context.putEntry(key, this.defaultValueFunction.apply(cause).orElseThrow(() -> ex));
             }
         }
     }
 
     @Override
-    public Text getUsage(Text key, CommandSource source, Text currentUsage) {
+    public Text getUsage(Text key, Cause cause, Text currentUsage) {
         // If this applies, add the square brackets
-        return this.defaultValueFunction.apply(source).map(x -> Text.of(
+        return this.defaultValueFunction.apply(cause).map(x -> Text.of(
                 CommandMessageFormatting.LEFT_SQUARE,
                 key,
                 CommandMessageFormatting.RIGHT_SQUARE)).orElse(currentUsage);
     }
 
-    public Function<CommandSource, Optional<?>> getDefaultValueFunction() {
+    public Function<Cause, Optional<?>> getDefaultValueFunction() {
         return defaultValueFunction;
     }
 

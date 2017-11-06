@@ -44,6 +44,7 @@ import org.spongepowered.api.command.CommandNotFoundException;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.dispatcher.Disambiguator;
 import org.spongepowered.api.command.dispatcher.Dispatcher;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.action.TextActions;
 import org.spongepowered.api.text.format.TextColors;
@@ -262,14 +263,14 @@ public class SpongeDispatcher implements Dispatcher {
     }
 
     @Override
-    public synchronized Optional<CommandMapping> get(String alias, @Nullable CommandSource source) {
+    public synchronized Optional<CommandMapping> get(String alias, @Nullable Cause cause) {
         List<CommandMapping> results = this.commands.get(alias.toLowerCase());
         if (results.size() == 1) {
             return Optional.of(results.get(0));
         } else if (results.size() == 0) {
             return Optional.empty();
         } else {
-            return this.disambiguatorFunc.disambiguate(source, alias, results);
+            return this.disambiguatorFunc.disambiguate(cause, alias, results);
         }
     }
 
@@ -292,37 +293,37 @@ public class SpongeDispatcher implements Dispatcher {
     }
 
     @Override
-    public CommandResult process(CommandSource source, String commandLine) throws CommandException {
+    public CommandResult process(Cause cause, String commandLine) throws CommandException {
         final String[] argSplit = commandLine.split(" ", 2);
-        Optional<CommandMapping> cmdOptional = get(argSplit[0], source);
+        Optional<CommandMapping> cmdOptional = get(argSplit[0], cause);
         if (!cmdOptional.isPresent()) {
             throw new CommandNotFoundException(t("commands.generic.notFound"), argSplit[0]); // TODO: Fix properly to use a SpongeTranslation??
         }
         final String arguments = argSplit.length > 1 ? argSplit[1] : "";
         final Command spec = cmdOptional.get().getCommand();
         try {
-            return spec.process(source, arguments);
+            return spec.process(cause, arguments);
         } catch (CommandNotFoundException e) {
             throw new CommandException(t("No such child command: %s", e.getCommand()));
         }
     }
 
     @Override
-    public List<String> getSuggestions(CommandSource src, final String arguments, @Nullable Location<World> targetPosition) throws CommandException {
+    public List<String> getSuggestions(Cause cause, final String arguments, @Nullable Location<World> targetPosition) throws CommandException {
         final String[] argSplit = arguments.split(" ", 2);
-        Optional<CommandMapping> cmdOptional = get(argSplit[0], src);
+        Optional<CommandMapping> cmdOptional = get(argSplit[0], cause);
         if (argSplit.length == 1) {
-            return filterCommands(src, argSplit[0]).stream().collect(ImmutableList.toImmutableList());
+            return filterCommands(cause, argSplit[0]).stream().collect(ImmutableList.toImmutableList());
         } else if (!cmdOptional.isPresent()) {
             return ImmutableList.of();
         }
-        return cmdOptional.get().getCommand().getSuggestions(src, argSplit[1], targetPosition);
+        return cmdOptional.get().getCommand().getSuggestions(cause, argSplit[1], targetPosition);
     }
 
     @Override
-    public boolean testPermission(CommandSource source) {
+    public boolean testPermission(Cause cause) {
         for (CommandMapping mapping : this.commands.values()) {
-            if (mapping.getCommand().testPermission(source)) {
+            if (mapping.getCommand().testPermission(cause)) {
                 return true;
             }
         }
@@ -330,28 +331,28 @@ public class SpongeDispatcher implements Dispatcher {
     }
 
     @Override
-    public Optional<Text> getShortDescription(CommandSource source) {
+    public Optional<Text> getShortDescription(Cause cause) {
         return Optional.empty();
     }
 
     @Override
-    public Optional<Text> getHelp(CommandSource source) {
+    public Optional<Text> getHelp(Cause cause) {
         if (this.commands.isEmpty()) {
             return Optional.empty();
         }
         Text.Builder build = t("Available commands:\n").toBuilder();
-        for (Iterator<String> it = filterCommands(source).iterator(); it.hasNext();) {
-            final Optional<CommandMapping> mappingOpt = get(it.next(), source);
+        for (Iterator<String> it = filterCommands(cause).iterator(); it.hasNext();) {
+            final Optional<CommandMapping> mappingOpt = get(it.next(), cause);
             if (!mappingOpt.isPresent()) {
                 continue;
             }
             CommandMapping mapping = mappingOpt.get();
-            final Optional<Text> description = mapping.getCommand().getShortDescription(source);
+            final Optional<Text> description = mapping.getCommand().getShortDescription(cause);
             build.append(Text.builder(mapping.getPrimaryAlias())
                             .color(TextColors.GREEN)
                             .style(TextStyles.UNDERLINE)
                             .onClick(TextActions.suggestCommand("/" + mapping.getPrimaryAlias())).build(),
-                    SPACE_TEXT, description.orElse(mapping.getCommand().getUsage(source)));
+                    SPACE_TEXT, description.orElse(mapping.getCommand().getUsage(cause)));
             if (it.hasNext()) {
                 build.append(Text.NEW_LINE);
             }
@@ -359,14 +360,14 @@ public class SpongeDispatcher implements Dispatcher {
         return Optional.of(build.build());
     }
 
-    private Set<String> filterCommands(final CommandSource src) {
-        return Multimaps.filterValues(this.commands, input -> input.getCommand().testPermission(src)).keys().elementSet();
+    private Set<String> filterCommands(final Cause cause) {
+        return Multimaps.filterValues(this.commands, input -> input.getCommand().testPermission(cause)).keys().elementSet();
     }
 
     // Filter out commands by String first
-    private Set<String> filterCommands(final CommandSource src, String start) {
+    private Set<String> filterCommands(final Cause cause, String start) {
         ListMultimap<String, CommandMapping> map = Multimaps.filterKeys(this.commands, input -> input != null && input.toLowerCase().startsWith(start.toLowerCase()));
-        return Multimaps.filterValues(map, input -> input.getCommand().testPermission(src)).keys().elementSet();
+        return Multimaps.filterValues(map, input -> input.getCommand().testPermission(cause)).keys().elementSet();
     }
 
     /**
@@ -379,14 +380,14 @@ public class SpongeDispatcher implements Dispatcher {
     }
 
     @Override
-    public Text getUsage(final CommandSource source) {
+    public Text getUsage(final Cause cause) {
         final Text.Builder build = Text.builder();
-        Iterable<String> filteredCommands = filterCommands(source).stream()
+        Iterable<String> filteredCommands = filterCommands(cause).stream()
                 .filter(input -> {
                     if (input == null) {
                         return false;
                     }
-                    final Optional<CommandMapping> ret = get(input, source);
+                    final Optional<CommandMapping> ret = get(input, cause);
                     return ret.isPresent() && ret.get().getPrimaryAlias().equals(input);
                 })
                 .collect(Collectors.toList());

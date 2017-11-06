@@ -26,11 +26,13 @@ package org.spongepowered.common.command.parameter.flag;
 
 import static org.spongepowered.common.util.SpongeCommonTranslationHelper.t;
 
+import com.google.common.collect.Lists;
 import org.spongepowered.api.command.CommandMessageFormatting;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.command.parameter.flag.Flags;
@@ -60,7 +62,7 @@ public class SpongeFlags implements Flags {
     }
 
     @Override
-    public void parse(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public void parse(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         if (args.hasPrevious() && !this.anchorFlags || !args.hasNext() || !args.peek().startsWith("-")) {
             return; // Nothing to parse, move along.
         }
@@ -70,13 +72,18 @@ public class SpongeFlags implements Flags {
         CommandContext.State contextPreviousState = context.getState();
         String next = args.next();
         if (next.startsWith("--")) {
-            parseLong(next, source, args, context, tokenizedPreviousState, contextPreviousState);
+            parseLong(next, cause, args, context, tokenizedPreviousState, contextPreviousState);
         } else {
-            parseShort(next, source, args, context, tokenizedPreviousState, contextPreviousState);
+            parseShort(next, cause, args, context, tokenizedPreviousState, contextPreviousState);
         }
     }
 
-    private void parseShort(String flag, CommandSource source, CommandArgs args, CommandContext context, CommandArgs.State tokenizedPreviousState,
+    @Override
+    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
+        return Lists.newArrayList(); // This gets ignored
+    }
+
+    private void parseShort(String flag, Cause cause, CommandArgs args, CommandContext context, CommandArgs.State tokenizedPreviousState,
             CommandContext.State contextPreviousState) throws ArgumentParseException {
         char[] shortFlags = flag.substring(1).toLowerCase(Locale.ENGLISH).toCharArray();
 
@@ -89,28 +96,28 @@ public class SpongeFlags implements Flags {
             CommandArgs argsToUse = i == shortFlags.length - 1 ? args : nonMoving;
             Parameter param = this.flags.get(String.valueOf(shortFlags[i]));
             if (param == null) {
-                this.shortUnknown.parse(source, argsToUse, context, tokenizedPreviousState, contextPreviousState, String.valueOf(shortFlags[i]));
+                this.shortUnknown.parse(cause, argsToUse, context, tokenizedPreviousState, contextPreviousState, String.valueOf(shortFlags[i]));
             } else {
-                param.parse(source, argsToUse, context);
+                param.parse(cause, argsToUse, context);
             }
         }
     }
 
-    private void parseLong(String flag, CommandSource source, CommandArgs args, CommandContext context, CommandArgs.State tokenizedPreviousState,
+    private void parseLong(String flag, Cause cause, CommandArgs args, CommandContext context, CommandArgs.State tokenizedPreviousState,
             CommandContext.State contextPreviousState) throws ArgumentParseException {
         String longFlag = flag.substring(2).toLowerCase(Locale.ENGLISH);
         Parameter param = this.flags.get(longFlag);
         if (param == null) {
-            this.longUnknown.parse(source, args, context, tokenizedPreviousState, contextPreviousState, longFlag);
+            this.longUnknown.parse(cause, args, context, tokenizedPreviousState, contextPreviousState, longFlag);
         } else {
-            param.parse(source, args, context);
+            param.parse(cause, args, context);
         }
     }
 
     @Override
-    public Text getUsage(CommandSource src) {
+    public Text getUsage(Cause cause) {
         return Text.joinWith(CommandMessageFormatting.SPACE_TEXT, this.primaryFlags.stream()
-                .map(this.flags::get).map(x -> x.getUsage(src)).filter(x -> !x.isEmpty()).collect(Collectors.toList()));
+                .map(this.flags::get).map(x -> x.getUsage(cause)).filter(x -> !x.isEmpty()).collect(Collectors.toList()));
     }
 
     @Override

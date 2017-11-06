@@ -32,6 +32,7 @@ import org.spongepowered.api.command.parameter.ArgumentParseException;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 
 import java.util.ArrayList;
@@ -50,7 +51,7 @@ class SpongeFirstOfParameter implements Parameter {
     }
 
     @Override
-    public void parse(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public void parse(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         if (this.isOptional && !args.hasNext()) {
             return;
         }
@@ -63,7 +64,7 @@ class SpongeFirstOfParameter implements Parameter {
             CommandArgs.State argsState = args.getState();
             CommandContext.State contextState = context.getState();
             try {
-                parameter.parse(source, args, context);
+                parameter.parse(cause, args, context);
                 return;
             } catch (ArgumentParseException ex) {
                 args.setState(argsState);
@@ -82,12 +83,12 @@ class SpongeFirstOfParameter implements Parameter {
     }
 
     @Override
-    public List<String> complete(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         List<String> completions = new ArrayList<>();
         for (Parameter parameter : this.parameters) {
             CommandContext.State state = context.getState();
             try {
-                completions.addAll(parameter.complete(source, args, context));
+                completions.addAll(parameter.complete(cause, args, context));
             } finally {
                 context.setState(state);
             }
@@ -97,12 +98,12 @@ class SpongeFirstOfParameter implements Parameter {
     }
 
     @Override
-    public Text getUsage(CommandSource source) {
+    public Text getUsage(Cause cause) {
         Text.Builder builder = CommandMessageFormatting.LEFT_PARENTHESIS.toBuilder();
         boolean isFirst = true;
 
         for (Parameter parameter : this.parameters) {
-            Text usage = parameter.getUsage(source);
+            Text usage = parameter.getUsage(cause);
             if (!usage.isEmpty()) {
                 if (isFirst) {
                     isFirst = false;

@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.managed.ValueParameterModifier;
 import org.spongepowered.api.command.parameter.managed.standard.VariableValueParameterModifiers;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.common.command.parameter.modifier.DefaultValueModifier;
 
 import java.util.Optional;
@@ -37,11 +38,10 @@ import javax.annotation.Nullable;
 
 public class SpongeDefaultValueModifierBuilder implements VariableValueParameterModifiers.DefaultValueModifierBuilder {
 
-    @Nullable private Function<CommandSource, Optional<?>> defaultValueFunction = null;
+    @Nullable private Function<Cause, Optional<?>> defaultValueFunction = null;
 
     @Override
-    public VariableValueParameterModifiers.DefaultValueModifierBuilder setDefaultValueFunction(
-            Function<CommandSource, Optional<?>> defaultValueFunction) {
+    public VariableValueParameterModifiers.DefaultValueModifierBuilder setDefaultValueFunction(Function<Cause, Optional<?>> defaultValueFunction) {
         this.defaultValueFunction = defaultValueFunction;
         return this;
     }

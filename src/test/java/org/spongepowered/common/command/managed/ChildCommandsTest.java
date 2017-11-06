@@ -35,6 +35,9 @@ import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandException;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
+import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.api.event.cause.EventContext;
+import org.spongepowered.api.event.cause.EventContextKey;
 import org.spongepowered.common.command.SpongeDispatcher;
 import org.spongepowered.lwts.runner.LaunchWrapperTestRunner;
 
@@ -52,13 +55,14 @@ public class ChildCommandsTest {
         final AtomicBoolean childExecuted = new AtomicBoolean();
         final Command spec = Command.builder()
                 .children(ImmutableMap.<List<String>, Command>of(ImmutableList.of("child"), Command.builder()
-                        .setExecutor((src, args) -> {
+                        .setExecutor((cause, src, args) -> {
                             childExecuted.set(true);
                             return CommandResult.builder().successCount(1).build();
                         }).build())).build();
         final SpongeDispatcher execute = new SpongeDispatcher();
         execute.register(spec, "parent");
-        execute.process(Mockito.mock(CommandSource.class), "parent child");
+        CommandSource source = Mockito.mock(CommandSource.class);
+        execute.process(Cause.builder().append(source).build(EventContext.empty()), "parent child");
 
         assertTrue(childExecuted.get());
     }

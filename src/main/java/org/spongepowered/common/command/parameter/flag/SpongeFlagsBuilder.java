@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandMessageFormatting;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.CommandContext;
@@ -43,6 +44,7 @@ import org.spongepowered.api.command.parameter.managed.ParsingContext;
 import org.spongepowered.api.command.parameter.managed.ValueParameterModifier;
 import org.spongepowered.api.command.parameter.managed.ValueParser;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.common.command.parameter.SpongeSequenceParameter;
 
@@ -197,9 +199,9 @@ public class SpongeFlagsBuilder implements Flags.Builder {
         }
 
         @Override
-        public void onParse(Text key, CommandSource source, CommandArgs args, CommandContext context, ParsingContext parsingContext)
+        public void onParse(Text key, Cause cause, CommandArgs args, CommandContext context, ParsingContext parsingContext)
                 throws ArgumentParseException {
-            if (source.hasPermission(this.flagPermission)) {
+            if (context.getSubject().map(x -> x.hasPermission(this.flagPermission)).orElse(true)) {
                 parsingContext.next();
             } else {
                 throw args.createError(t("You do not have permission to use the flag %s", this.flag));
@@ -207,8 +209,8 @@ public class SpongeFlagsBuilder implements Flags.Builder {
         }
 
         @Override
-        public Text getUsage(Text key, CommandSource source, Text currentUsage) {
-            if (!source.hasPermission(this.flagPermission)) {
+        public Text getUsage(Text key, Cause cause, Text currentUsage) {
+            if (!Command.getSubjectFromCause(cause).map(x -> x.hasPermission(this.flagPermission)).orElse(true)) {
                 return Text.EMPTY;
             }
 
@@ -225,19 +227,19 @@ public class SpongeFlagsBuilder implements Flags.Builder {
         }
 
         @Override
-        public void parse(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
-            this.wrapped.parse(source, args, context);
+        public void parse(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
+            this.wrapped.parse(cause, args, context);
         }
 
         @Override
-        public List<String> complete(CommandSource source, CommandArgs args, CommandContext context)
+        public List<String> complete(Cause cause, CommandArgs args, CommandContext context)
                 throws ArgumentParseException {
-            return this.wrapped.complete(source, args, context);
+            return this.wrapped.complete(cause, args, context);
         }
 
         @Override
-        public Text getUsage(CommandSource source) {
-            Text usage = this.wrapped.getUsage(source);
+        public Text getUsage(Cause cause) {
+            Text usage = this.wrapped.getUsage(cause);
             if (usage.isEmpty() || usage.toPlain().matches("^\\[.*]$")) {
                 return usage;
             }

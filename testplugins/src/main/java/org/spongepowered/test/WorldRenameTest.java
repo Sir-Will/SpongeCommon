@@ -36,6 +36,7 @@ import org.spongepowered.api.command.parameter.managed.ValueParameter;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
 import org.spongepowered.api.data.DataQuery;
 import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.event.game.state.GameInitializationEvent;
 import org.spongepowered.api.plugin.Plugin;
 import org.spongepowered.api.text.Text;
@@ -83,7 +84,7 @@ public class WorldRenameTest {
                 Command.builder()
                         .parameter(Parameter.builder().setKey(worldKey).setParser(new WorldParameter()).build())
                         .parameter(Parameter.string().setKey(newNameKey).build())
-                        .setExecutor((source, context) -> {
+                        .setExecutor((cause, source, context) -> {
                             // Name clashes should be handled by the impl.
                             WorldProperties newProperties = Sponge.getServer()
                                     .renameWorld(context.getOneUnchecked(worldKey), context.getOneUnchecked(newNameKey))
@@ -96,7 +97,7 @@ public class WorldRenameTest {
         Sponge.getCommandManager().register(this,
                 Command.builder()
                         .parameter(Parameter.string().setKey(newNameKey).build())
-                        .setExecutor((source, context) -> {
+                        .setExecutor((cause, source, context) -> {
                             try {
                                 Sponge.getServer().createWorldProperties(context.getOneUnchecked(newNameKey), WorldArchetypes.OVERWORLD);
                             } catch (IOException e) {
@@ -110,7 +111,7 @@ public class WorldRenameTest {
         Sponge.getCommandManager().register(this,
                 Command.builder()
                         .parameter(Parameter.builder().setKey(worldKey).setParser(new WorldParameter(x -> true)).build())
-                        .setExecutor((source, context) -> {
+                        .setExecutor((cause, source, context) -> {
                             WorldProperties wp = context.getOneUnchecked(worldKey);
                             source.sendMessage(Text.of("World: ", wp.getWorldName(), " - UUID: ", wp.getUniqueId(), " - Dim ID:",
                                     wp.getAdditionalProperties().getInt(DataQuery.of("SpongeData", "dimensionId")).map(Object::toString)
@@ -134,7 +135,7 @@ public class WorldRenameTest {
         }
 
         @Override
-        public List<String> complete(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+        public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
             Stream<String> tabComplete = Sponge.getServer().getAllWorldProperties().stream()
                     .filter(this.worldPropertiesPredicate)
                     .map(x -> x.getWorldName().toLowerCase());
@@ -148,7 +149,7 @@ public class WorldRenameTest {
         }
 
         @Override
-        public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+        public Optional<?> getValue(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
             Optional<WorldProperties> worldProperties = Sponge.getServer().getWorldProperties(args.next());
             if (worldProperties.isPresent()) {
                 if (this.worldPropertiesPredicate.test(worldProperties.get())) {

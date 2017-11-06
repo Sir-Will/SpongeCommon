@@ -55,7 +55,7 @@ public class SpongeCatalogTypeValueParameterBuilder implements VariableValuePara
     @Override
     public ValueParameter build() {
         Preconditions.checkState(this.catalogTypeClass != null, "catalogType");
-        return new CatalogTypeValueParameter<>(catalogTypeClass, prefixes);
+        return new CatalogTypeValueParameter<>(this.catalogTypeClass, this.prefixes);
     }
 
     @Override

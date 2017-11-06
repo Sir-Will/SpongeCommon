@@ -26,26 +26,30 @@ package org.spongepowered.common.command.parameter.value;
 
 import com.google.common.collect.Iterables;
 import org.spongepowered.api.Sponge;
-import org.spongepowered.api.command.CommandSource;
-import org.spongepowered.api.command.parameter.managed.impl.SelectorValueParameter;
+import org.spongepowered.api.command.parameter.ArgumentParseException;
+import org.spongepowered.api.command.parameter.CommandContext;
+import org.spongepowered.api.command.parameter.managed.impl.PatternMatchingValueParameter;
+import org.spongepowered.api.command.parameter.managed.standard.CatalogedSelectorParsers;
+import org.spongepowered.api.command.parameter.managed.standard.CatalogedValueParameter;
 import org.spongepowered.api.entity.Entity;
 import org.spongepowered.api.entity.living.player.Player;
+import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.api.text.Text;
 import org.spongepowered.api.world.World;
-import org.spongepowered.api.command.parameter.managed.standard.CatalogedValueParameter;
 
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class EntityValueParameter extends SelectorValueParameter implements CatalogedValueParameter {
+public class EntityValueParameter extends PatternMatchingValueParameter implements CatalogedValueParameter {
 
     private final String id;
     private final String name;
 
     public EntityValueParameter(String id, String name) {
-        super(Entity.class);
         this.id = id;
         this.name = name;
     }
@@ -61,7 +65,7 @@ public class EntityValueParameter extends SelectorValueParameter implements Cata
     }
 
     @Override
-    protected Iterable<String> getChoices(CommandSource source) {
+    protected Iterable<String> getChoices(Cause cause) {
         Set<Iterable<Entity>> worldEntities = Sponge.getServer().getWorlds().stream().map(World::getEntities).collect(Collectors.toSet());
         return StreamSupport.stream(Iterables.concat(worldEntities).spliterator(), false).map(input -> {
             if (input == null) {
@@ -86,4 +90,9 @@ public class EntityValueParameter extends SelectorValueParameter implements Cata
         throw new IllegalArgumentException("Input value " + choice + " was not an entity");
     }
 
+    @Override
+    public Optional<?> parseSelector(Cause cause, String selector, CommandContext context, Function<Text, ArgumentParseException> errorFunction)
+            throws ArgumentParseException {
+        return CatalogedSelectorParsers.ENTITIES.parseSelector(cause, selector, context, errorFunction);
+    }
 }

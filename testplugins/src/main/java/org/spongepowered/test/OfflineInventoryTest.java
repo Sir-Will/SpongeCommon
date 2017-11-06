@@ -63,16 +63,12 @@ public class OfflineInventoryTest {
     public void onGamePreInitialization(GamePreInitializationEvent event) {
         Sponge.getCommandManager().register(this, Command.builder()
                 .setShortDescription(Text.of("Fills your hotbar with diamonds when you are offline"))
-                .setExecutor((src, args) -> {
-                    if (!(src instanceof Player)) {
-                        src.sendMessage(Text.of(TextColors.RED, "Player only."));
-                        return CommandResult.success();
-                    }
-                    Player player = (Player) src;
+                .setTargetedExecutorErrorMessage(Text.of("This command can only be executed by players"))
+                .targetedExecutor((cause, player, args) -> {
                     receiveDiamonds.add(player.getUniqueId());
-                    src.sendMessage(Text.of(TextColors.GREEN, "You will receive diamonds."));
+                    player.sendMessage(Text.of(TextColors.GREEN, "You will receive diamonds."));
                     return CommandResult.success();
-                })
+                }, Player.class)
                 .build(), "getmesomediamonds");
     }
 

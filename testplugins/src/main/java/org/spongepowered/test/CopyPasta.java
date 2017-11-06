@@ -92,12 +92,8 @@ public class CopyPasta {
         Sponge.getCommandManager().register(this, Command.builder()
             .setShortDescription(Text.of("Copies a region of the world to your clipboard"))
             .setPermission(PLUGIN_ID + ".command.copy")
-            .setExecutor((src, args) -> {
-                if (!(src instanceof Player)) {
-                    src.sendMessage(Text.of(TextColors.RED, "Player only."));
-                    return CommandResult.success();
-                }
-                Player player = (Player) src;
+            .setTargetedExecutorErrorMessage(Text.of("Only players can run this command"))
+            .targetedExecutor((cause, player, args) -> {
                 PlayerData data = get(player);
                 if (data.getPos1() == null || data.getPos2() == null) {
                     player.sendMessage(Text.of(TextColors.RED, "You must set both positions before copying"));
@@ -109,17 +105,13 @@ public class CopyPasta {
                 data.setClipboard(volume);
                 player.sendMessage(Text.of(TextColors.GREEN, "Saved to clipboard."));
                 return CommandResult.success();
-            })
+            }, Player.class)
             .build(), "copy");
         Sponge.getCommandManager().register(this, Command.builder()
             .setShortDescription(Text.of("Pastes your clipboard at your current position"))
             .setPermission(PLUGIN_ID + ".command.paste")
-            .setExecutor((src, args) -> {
-                if (!(src instanceof Player)) {
-                    src.sendMessage(Text.of(TextColors.RED, "Player only."));
-                    return CommandResult.success();
-                }
-                Player player = (Player) src;
+            .setTargetedExecutorErrorMessage(Text.of("Only players can run this command"))
+            .targetedExecutor((cause, player, args) -> {
                 PlayerData data = get(player);
                 ArchetypeVolume volume = data.getClipboard();
                 if (volume == null) {
@@ -131,21 +123,17 @@ public class CopyPasta {
                 Sponge.getCauseStackManager().popCause();
                 player.sendMessage(Text.of(TextColors.GREEN, "Pasted clipboard into world."));
                 return CommandResult.success();
-            })
+            }, Player.class)
             .build(), "paste");
         Sponge.getCommandManager().register(this, Command.builder()
             .setShortDescription(Text.of("Saves your clipboard to disk"))
             .setPermission(PLUGIN_ID + ".command.save")
             .parameter(Parameter.string().setKey("format").build())
             .parameter(Parameter.string().setKey("name").build())
-            .setExecutor((src, args) -> {
-                if (!(src instanceof Player)) {
-                    src.sendMessage(Text.of(TextColors.RED, "Player only."));
-                    return CommandResult.success();
-                }
+            .setTargetedExecutorErrorMessage(Text.of("Only players can run this command"))
+            .targetedExecutor((cause, player, args) -> {
                 String format = args.getOneUnchecked("format").toString();
                 String name = args.getOneUnchecked("name").toString();
-                Player player = (Player) src;
                 PlayerData data = get(player);
                 ArchetypeVolume volume = data.getClipboard();
                 if (volume == null) {
@@ -178,21 +166,17 @@ public class CopyPasta {
                     return CommandResult.success();
                 }
                 return CommandResult.success();
-            })
+            }, Player.class)
             .build(), "save");
         Sponge.getCommandManager().register(this, Command.builder()
             .setShortDescription(Text.of("Loads a schematic from disk to your clipboard"))
             .setPermission(PLUGIN_ID + ".command.load")
             .parameter(Parameter.string().setKey("format").build())
             .parameter(Parameter.string().setKey("name").build())
-            .setExecutor((src, args) -> {
-                if (!(src instanceof Player)) {
-                    src.sendMessage(Text.of(TextColors.RED, "Player only."));
-                    return CommandResult.success();
-                }
+            .setTargetedExecutorErrorMessage(Text.of("Only players can run this command"))
+            .targetedExecutor((cause, player, args) -> {
                 String format = args.getOneUnchecked("format").toString();
                 String name = args.getOneUnchecked("name").toString();
-                Player player = (Player) src;
                 PlayerData data = get(player);
                 if (!"legacy".equalsIgnoreCase(format) && !"sponge".equalsIgnoreCase(format)) {
                     player.sendMessage(Text.of(TextColors.RED, "Unsupported schematic format, supported formats are [legacy, sponge]"));
@@ -220,7 +204,7 @@ public class CopyPasta {
                 player.sendMessage(Text.of(TextColors.GREEN, "Loaded schematic from " + inputFile.getAbsolutePath()));
                 data.setClipboard(schematic);
                 return CommandResult.success();
-            })
+            }, Player.class)
             .build(), "load");
     }
 

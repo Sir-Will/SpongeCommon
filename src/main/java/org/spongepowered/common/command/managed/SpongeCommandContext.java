@@ -28,9 +28,15 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
+import org.spongepowered.api.command.Command;
+import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.flag.Flags;
+import org.spongepowered.api.entity.Entity;
+import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.api.service.permission.Subject;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.TranslatableText;
+import org.spongepowered.api.world.Locatable;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 import org.spongepowered.api.command.parameter.CommandContext;
@@ -48,6 +54,10 @@ public class SpongeCommandContext implements CommandContext {
 
     private final UUID internalIdentifier = UUID.randomUUID();
     private final boolean isCompletion;
+    @Nullable private final CommandSource commandSource;
+    @Nullable private final Entity entityTarget;
+    @Nullable private final Subject subject;
+    @Nullable private final Location<World> location;
     @Nullable private final Location<World> targetBlock;
     private Flags flags = NoFlags.INSTANCE;
     @Nullable private String currentCommand = null;
@@ -62,15 +72,19 @@ public class SpongeCommandContext implements CommandContext {
 
     private final ArrayListMultimap<String, Object> parsedArgs;
 
-    public SpongeCommandContext() {
-        this(null, false, null);
+    public SpongeCommandContext(Cause cause) {
+        this(cause, null, false, null);
     }
 
-    public SpongeCommandContext(@Nullable ArrayListMultimap<String, Object> parsedArgs, boolean isCompletion,
+    public SpongeCommandContext(Cause cause, @Nullable ArrayListMultimap<String, Object> parsedArgs, boolean isCompletion,
             @Nullable Location<World> targetBlock) {
         this.targetBlock = targetBlock;
         this.isCompletion = isCompletion;
         this.parsedArgs = parsedArgs == null ? ArrayListMultimap.create() : parsedArgs;
+        this.entityTarget = Command.getEntityFromCause(cause).orElse(null);
+        this.commandSource = Command.getCommandSourceFromCause(cause).orElse(null);
+        this.location = Command.getLocationFromCause(cause).orElse(null);
+        this.subject = Command.getSubjectFromCause(cause).orElse(null);
     }
 
     public void setFlags(Flags flags) {
@@ -91,6 +105,48 @@ public class SpongeCommandContext implements CommandContext {
     @SuppressWarnings("unchecked")
     public <T> T getOneUnchecked(String key) {
         return (T) getOne(key).get();
+    }
+
+    @Override
+    public Optional<CommandSource> getCommandSource() {
+        return Optional.ofNullable(this.commandSource);
+    }
+
+    @Override
+    public Optional<Entity> getEntityTarget() {
+        if (this.entityTarget == null) {
+            if (this.commandSource != null && this.commandSource instanceof Entity) {
+                return Optional.of((Entity) this.commandSource);
+            }
+
+            return Optional.empty();
+        }
+        return Optional.of(this.entityTarget);
+    }
+
+    @Override
+    public Optional<Subject> getSubject() {
+        if (this.subject == null) {
+            return Optional.ofNullable(this.commandSource);
+        }
+        return Optional.of(this.subject);
+    }
+
+    @Override
+    public Optional<Location<World>> getLocation() {
+        if (this.location == null) {
+            if (this.entityTarget != null) {
+                return Optional.of(this.entityTarget.getLocation());
+            }
+
+            if (this.commandSource != null && this.commandSource instanceof Locatable) {
+                return Optional.of(((Locatable) this.commandSource).getLocation());
+            }
+
+            return Optional.empty();
+        }
+
+        return Optional.of(this.location);
     }
 
     @Override

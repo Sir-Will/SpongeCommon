@@ -27,6 +27,7 @@ package org.spongepowered.common.command.parameter.value;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.util.Tristate;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
@@ -59,7 +60,7 @@ public class AlternativeChoicesValueParameter implements ValueParameter {
     }
 
     @Override
-    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public Optional<?> getValue(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         final String nextArg = args.next();
         return Optional.ofNullable(getValue(nextArg, args));
     }
@@ -75,14 +76,14 @@ public class AlternativeChoicesValueParameter implements ValueParameter {
     }
 
     @Override
-    public List<String> complete(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         final String nextArg = args.peek();
         return this.choicesSupplier.get().stream().filter(x -> x.toLowerCase(Locale.ENGLISH)
                 .startsWith(nextArg.toLowerCase(Locale.ENGLISH))).sorted().collect(Collectors.toList());
     }
 
     @Override
-    public Text getUsage(Text key, CommandSource source) {
+    public Text getUsage(Text key, Cause cause) {
         if (this.includeChoicesInUsage != Tristate.FALSE) {
             List<String> choices = this.choicesSupplier.get().stream().sorted().collect(Collectors.toList());
             if (this.includeChoicesInUsage.asBoolean() || choices.size() < CUTOFF) {

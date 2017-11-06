@@ -41,6 +41,7 @@ import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.command.parameter.managed.ValueParameter;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 
 import java.util.List;
 import java.util.Optional;
@@ -91,7 +92,7 @@ public class SpongeCallbackHolder {
         return Command.builder()
                 .setShortDescription(t("Execute a callback registered as part of a Text object. Primarily for internal use"))
                 .parameters(Parameter.builder().setKey(t("callback")).setParser(CALLBACK_VALUE_PARAMETER).build())
-                .setExecutor((src, args) -> {
+                .setExecutor((cause, src, args) -> {
                     args.<Consumer<CommandSource>>getOneUnchecked("callback").accept(src);
                     return CommandResult.success();
                 }).build();
@@ -100,7 +101,7 @@ public class SpongeCallbackHolder {
     private static class CallbackValueParameter implements ValueParameter {
 
         @Override
-        public Optional<Object> getValue(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+        public Optional<Object> getValue(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
             final String next = args.next();
             try {
                 UUID id = UUID.fromString(next);
@@ -116,7 +117,7 @@ public class SpongeCallbackHolder {
         }
 
         @Override
-        public List<String> complete(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+        public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
             return ImmutableList.of();
         }
 

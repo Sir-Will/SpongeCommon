@@ -31,6 +31,7 @@ import org.spongepowered.api.GameRegistry;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.managed.impl.PatternMatchingValueParameter;
+import org.spongepowered.api.event.cause.Cause;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,7 +47,7 @@ public class CatalogTypeValueParameter<T extends CatalogType> extends PatternMat
     }
 
     @Override
-    protected Iterable<String> getChoices(CommandSource source) {
+    protected Iterable<String> getChoices(Cause cause) {
         GameRegistry gr = Sponge.getRegistry();
         final Collection<String> choices = gr.getAllOf(this.catalogType)
                 .stream()

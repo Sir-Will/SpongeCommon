@@ -31,6 +31,8 @@ import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
 import org.spongepowered.api.entity.Entity;
+import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.selector.Selector;
 import org.spongepowered.api.world.Locatable;
 import org.spongepowered.api.world.Location;
@@ -42,6 +44,7 @@ import org.spongepowered.api.command.parameter.managed.standard.CatalogedValuePa
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.spongepowered.api.util.SpongeApiTranslationHelper.t;
@@ -67,7 +70,7 @@ public class LocationValueParameter implements CatalogedValueParameter {
     }
 
     @Override
-    public List<String> complete(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         CommandArgs.State state = args.getState();
         Optional<String> nextPossibility = args.nextIfPresent();
         if (nextPossibility.isPresent() && nextPossibility.get().startsWith("@")) {
@@ -75,22 +78,17 @@ public class LocationValueParameter implements CatalogedValueParameter {
         }
         args.setState(state);
         List<String> ret;
-        if ((ret = this.worldParser.complete(source, args, context)).isEmpty()) {
+        if ((ret = this.worldParser.complete(cause, args, context)).isEmpty()) {
             args.setState(state);
-            ret = this.vectorParser.complete(source, args, context);
+            ret = this.vectorParser.complete(cause, args, context);
         }
         return ret;
     }
 
     @Override
-    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context)
+    public Optional<?> getValue(Cause cause, CommandArgs args, CommandContext context)
             throws ArgumentParseException {
         CommandArgs.State state = args.getState();
-        if (args.peek().startsWith("@")) { // We are a selector
-            return Optional.of(Selector.parse(args.next()).resolve(source).stream()
-                    .map(Entity::getLocation)
-                    .collect(ImmutableSet.toImmutableSet()));
-        }
 
         Object world;
         Object vec = null;
@@ -98,19 +96,19 @@ public class LocationValueParameter implements CatalogedValueParameter {
             world = checkNotNull(this.worldParser.getValue(args.next()), "worldVal");
         } catch (ArgumentParseException ex) {
             args.setState(state);
-            if (!(source instanceof Locatable)) {
+            if (!(context.getLocation().isPresent())) {
                 throw args.createError(t("Source must have a location in order to have a fallback world"));
             }
-            world = ((Locatable) source).getWorld().getProperties();
+            world = context.getLocation().get().getExtent().getProperties();
             try {
-                vec = checkNotNull(this.vectorParser.getValue(source, args, context), "vectorVal");
+                vec = checkNotNull(this.vectorParser.getValue(cause, args, context), "vectorVal");
             } catch (ArgumentParseException ex2) {
                 args.setState(state);
                 throw ex;
             }
         }
         if (vec == null) {
-            vec = checkNotNull(this.vectorParser.getValue(source, args, context), "vectorVal");
+            vec = checkNotNull(this.vectorParser.getValue(cause, args, context), "vectorVal");
         }
 
         if (world instanceof Collection<?>) {
@@ -128,4 +126,11 @@ public class LocationValueParameter implements CatalogedValueParameter {
         return Optional.of(new Location<>(targetWorld.get(), vector));
     }
 
+    @Override
+    public Optional<?> parseSelector(Cause cause, String selector, CommandContext context, Function<Text, ArgumentParseException> errorFunction)
+            throws ArgumentParseException {
+        return context.getLocation().map(x -> Selector.parse(selector).resolve(x).stream()
+                .map(Entity::getLocation)
+                .collect(ImmutableSet.toImmutableSet()));
+    }
 }

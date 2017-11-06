@@ -31,6 +31,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MapMaker;
+import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
@@ -41,6 +42,7 @@ import org.spongepowered.api.command.parameter.managed.ValueParameter;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
 import org.spongepowered.api.command.managed.CommandExecutor;
 import org.spongepowered.api.entity.living.player.Player;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.service.pagination.PaginationList;
 import org.spongepowered.api.service.pagination.PaginationService;
 import org.spongepowered.api.text.Text;
@@ -193,9 +195,10 @@ public class SpongePaginationService implements PaginationService {
     private class ActivePaginationValueParameter implements ValueParameter {
 
         @Override
-        public Optional<Object> getValue(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+        public Optional<Object> getValue(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
             UUID id;
 
+            CommandSource source = context.getCommandSource().orElseGet(() -> Sponge.getServer().getConsole());
             SourcePaginations paginations = getPaginationState(source, false);
             if (paginations == null) {
                 throw args.createError(t("Source %s has no paginations!", source.getName()));
@@ -219,7 +222,8 @@ public class SpongePaginationService implements PaginationService {
         }
 
         @Override
-        public List<String> complete(CommandSource src, CommandArgs args, CommandContext context) throws ArgumentParseException {
+        public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
+            CommandSource src = context.getCommandSource().orElseGet(() -> Sponge.getServer().getConsole());
             SourcePaginations paginations = getPaginationState(src, false);
             if (paginations == null) {
                 return ImmutableList.of();
@@ -236,7 +240,7 @@ public class SpongePaginationService implements PaginationService {
         }
 
         @Override
-        public Text getUsage(Text key, CommandSource source) {
+        public Text getUsage(Text key, Cause cause) {
             return Text.of("[", key, "]");
         }
 

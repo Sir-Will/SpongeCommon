@@ -22,51 +22,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.command.parameter.value;
+package org.spongepowered.common.command.parameter.selector;
 
-import com.google.common.collect.Lists;
-import org.spongepowered.api.command.CommandMessageFormatting;
-import org.spongepowered.api.command.CommandSource;
+import org.spongepowered.api.command.parameter.ArgumentParseException;
 import org.spongepowered.api.command.parameter.CommandContext;
-import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.command.parameter.managed.standard.CatalogedSelectorParser;
 import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
-import org.spongepowered.api.command.parameter.ArgumentParseException;
-import org.spongepowered.api.command.parameter.managed.standard.CatalogedValueParameter;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
-public class RawJoinedStringValueParameter implements CatalogedValueParameter {
+public class NoSelectorParser implements CatalogedSelectorParser {
 
     @Override
     public String getId() {
-        return "sponge:raw_joined_strings";
+        return "sponge:no_selector";
     }
 
     @Override
     public String getName() {
-        return "Remaining Raw Joined Strings parameter";
+        return "No selector parser";
     }
 
     @Override
-    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
-        return Lists.newArrayList();
-    }
-
-    @Override
-    public Optional<?> getValue(Cause cause, CommandArgs args, CommandContext context)
+    public Optional<?> parseSelector(Cause cause, String selector, CommandContext context, Function<Text, ArgumentParseException> errorFunction)
             throws ArgumentParseException {
-        // args.next();
-        String ret = args.getRaw().substring(args.getCurrentRawPosition());
-        while (args.hasNext()) { // Consume remaining args
-            args.next();
-        }
-        return Optional.of(ret);
-    }
-
-    @Override
-    public Text getUsage(Text key, Cause cause) {
-        return Text.of(key, CommandMessageFormatting.ELLIPSIS_TEXT);
+        return Optional.empty();
     }
 }

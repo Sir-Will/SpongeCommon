@@ -32,8 +32,10 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.command.ServerCommandManager;
 import net.minecraft.util.math.BlockPos;
 import org.spongepowered.api.Game;
+import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.CommandResult;
+import org.spongepowered.api.event.CauseStackManager;
 import org.spongepowered.api.service.permission.PermissionService;
 import org.spongepowered.api.service.permission.SubjectData;
 import org.spongepowered.api.util.Tristate;
@@ -155,7 +157,7 @@ public abstract class MixinServerCommandManager extends CommandHandler implement
     }
 
     /**
-     * @author zml
+     * @author zml, dualspiral
      *
      * Purpose: Reroute MC command handling through Sponge
      * Reasoning: All commands should go through one system -- we need none of the MC handling code
@@ -168,6 +170,9 @@ public abstract class MixinServerCommandManager extends CommandHandler implement
         if (pos != null) {
             targetPos = new Location<>((org.spongepowered.api.world.World) sender.getEntityWorld(), VecHelper.toVector3i(pos));
         }
-        return ((SpongeCommandManager) SpongeImpl.getGame().getCommandManager()).getSuggestions((CommandSource) sender, input, targetPos, false);
+        try (CauseStackManager.StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame()) {
+            frame.pushCause(sender);
+            return ((SpongeCommandManager) SpongeImpl.getGame().getCommandManager()).getSuggestions(frame.getCurrentCause(), input, targetPos, false);
+        }
     }
 }

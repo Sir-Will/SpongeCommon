@@ -29,6 +29,7 @@ import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
 import org.spongepowered.api.command.parameter.managed.ValueParameter;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.util.Tristate;
 
@@ -55,7 +56,7 @@ public class ChoicesValueParameter implements ValueParameter {
     }
 
     @Override
-    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public Optional<?> getValue(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         final String nextArg = args.next();
         return Optional.ofNullable(getValue(nextArg, args));
     }
@@ -70,14 +71,14 @@ public class ChoicesValueParameter implements ValueParameter {
     }
 
     @Override
-    public List<String> complete(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         final String nextArg = args.peek();
         return this.choices.keySet().stream().filter(x -> x.toLowerCase(Locale.ENGLISH)
                 .startsWith(nextArg.toLowerCase(Locale.ENGLISH))).sorted().collect(Collectors.toList());
     }
 
     @Override
-    public Text getUsage(Text key, CommandSource source) {
+    public Text getUsage(Text key, Cause cause) {
         if (this.includeChoicesInUsage != Tristate.FALSE) {
             List<String> choices = this.choices.keySet().stream().sorted().collect(Collectors.toList());
             if (this.includeChoicesInUsage.asBoolean() || choices.size() < CUTOFF) {

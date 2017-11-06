@@ -22,34 +22,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.command.parameter.flag.behaviors;
+package org.spongepowered.common.command.parameter.selector;
 
-import static org.spongepowered.common.util.SpongeCommonTranslationHelper.t;
+import org.spongepowered.api.entity.living.player.Player;
 
-import org.spongepowered.api.command.CommandSource;
-import org.spongepowered.api.command.parameter.CommandContext;
-import org.spongepowered.api.command.parameter.ArgumentParseException;
-import org.spongepowered.api.command.parameter.flag.UnknownFlagBehavior;
-import org.spongepowered.api.command.parameter.token.CommandArgs;
-import org.spongepowered.api.event.cause.Cause;
+public class EntitySelectorParser extends AbstractSelectorParser {
 
-public class ErrorBehavior implements UnknownFlagBehavior {
-
-    @Override
-    public void parse(Cause cause, CommandArgs args, CommandContext context, CommandArgs.State tokenizedArgsPreviousState,
-            CommandContext.State contextPreviousState, String flag) throws ArgumentParseException {
-        args.setState(tokenizedArgsPreviousState);
-        throw args.createError(t("%s is not a valid flag", flag));
-    }
-
-    @Override
-    public String getId() {
-        return "sponge:error";
-    }
-
-    @Override
-    public String getName() {
-        return "Throw error on unknown flag";
+    public EntitySelectorParser() {
+        super("sponge:entity_selector", "Entity selector parser", Player.class);
     }
 
 }

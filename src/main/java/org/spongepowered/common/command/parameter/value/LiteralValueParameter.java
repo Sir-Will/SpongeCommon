@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
 import org.spongepowered.api.command.parameter.managed.ValueParameter;
@@ -50,7 +51,7 @@ public class LiteralValueParameter implements ValueParameter {
     }
 
     @Override
-    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public Optional<?> getValue(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         Iterable<String> supplier = this.literalSupplier.get();
         for (String literal : supplier) {
             String current = args.next();
@@ -63,7 +64,7 @@ public class LiteralValueParameter implements ValueParameter {
     }
 
     @Override
-    public List<String> complete(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         for (String arg : this.literalSupplier.get()) {
             final Optional<String> next = args.nextIfPresent();
             if (!next.isPresent()) {
@@ -82,7 +83,7 @@ public class LiteralValueParameter implements ValueParameter {
     }
 
     @Override
-    public Text getUsage(Text key, CommandSource source) {
+    public Text getUsage(Text key, Cause cause) {
         return Text.of(String.join(" ", this.literalSupplier.get()));
     }
 

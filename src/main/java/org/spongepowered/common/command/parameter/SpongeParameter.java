@@ -28,6 +28,7 @@ import org.spongepowered.api.command.CommandMessageFormatting;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 
 import org.spongepowered.api.command.parameter.Parameter;
@@ -54,28 +55,28 @@ class SpongeParameter implements Parameter {
     }
 
     @Override
-    public void parse(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
-        new SpongeParsingContext(this.key, source, args, context, this.modifiers.listIterator(), this.valueParameter).next();
+    public void parse(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
+        new SpongeParsingContext(this.key, cause, args, context, this.modifiers.listIterator(), this.valueParameter).next();
     }
 
     @Override
-    public List<String> complete(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
-        List<String> completions = this.valueParameter.complete(source, args, context);
+    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
+        List<String> completions = this.valueParameter.complete(cause, args, context);
         for (ValueParameterModifier modifier : this.modifiers) {
-            completions = modifier.complete(source, args, context, completions);
+            completions = modifier.complete(cause, args, context, completions);
         }
 
         return completions;
     }
 
     @Override
-    public Text getUsage(CommandSource source) {
+    public Text getUsage(Cause cause) {
         Text usage = Text.of(
                 CommandMessageFormatting.LT_TEXT,
-                this.valueParameter.getUsage(this.key, source),
+                this.valueParameter.getUsage(this.key, cause),
                 CommandMessageFormatting.GT_TEXT);
         for (ValueParameterModifier modifier : this.modifiers) {
-            usage = modifier.getUsage(this.key, source, usage);
+            usage = modifier.getUsage(this.key, cause, usage);
         }
         return usage;
     }

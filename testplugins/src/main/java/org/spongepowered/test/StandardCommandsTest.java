@@ -57,14 +57,14 @@ public class StandardCommandsTest {
 
     @Listener
     public void onInit(GameInitializationEvent event) {
-        Sponge.getCommandManager().register(this, Command.builder().setExecutor((source, context) -> {
+        Sponge.getCommandManager().register(this, Command.builder().setExecutor((cause, source, context) -> {
             source.sendMessage(Text.of("No parameter command."));
             return CommandResult.success();
         }).build(), "noparam");
 
         Sponge.getCommandManager().register(this, Command.builder()
                 .setPermission("sponge.test.permission")
-                .setExecutor((source, context) -> {
+                .setExecutor((cause, source, context) -> {
                     source.sendMessage(Text.of("You have the permission \"sponge.test.permission\"."));
                     return CommandResult.success();
         }).build(), "permission");
@@ -72,7 +72,7 @@ public class StandardCommandsTest {
         Sponge.getCommandManager().register(this, Command.builder()
                 .parameters(Parameter.remainingRawJoinedStrings().setKey(textKey).build())
                 .setShortDescription(Text.of("Repeats what you say to the command."))
-                .setExecutor((source, context) -> {
+                .setExecutor((cause, source, context) -> {
                     source.sendMessage(Text.of("Simon says: ", context.getOneUnchecked(textKey)));
                     return CommandResult.success();
                 }).build(), "simonsays");
@@ -80,7 +80,7 @@ public class StandardCommandsTest {
         Sponge.getCommandManager().register(this, Command.builder()
                 .parameters(Parameter.choices("wisely", "poorly").setKey(textKey).build())
                 .setShortDescription(Text.of("Repeats what you say to the command, from a choice of \"wisely\" and \"poorly\"."))
-                .setExecutor((source, context) -> {
+                .setExecutor((cause, source, context) -> {
                     source.sendMessage(Text.of("You chose ", context.getOneUnchecked(textKey)));
                     return CommandResult.success();
                 }).build(), "choose");
@@ -88,7 +88,7 @@ public class StandardCommandsTest {
         Sponge.getCommandManager().register(this, Command.builder()
                 .parameters(Parameter.string().setKey(textKey).optional().build())
                 .setShortDescription(Text.of("Repeats the one word you say to the command, if you add that parameter."))
-                .setExecutor((source, context) -> {
+                .setExecutor((cause, source, context) -> {
                     source.sendMessage(Text.of("You chose ", context.<String>getOne(textKey).orElse("nothing")));
                     return CommandResult.success();
                 }).build(), "chooseoptional");
@@ -96,7 +96,7 @@ public class StandardCommandsTest {
         Sponge.getCommandManager().register(this, Command.builder()
                 .parameters(Parameter.string().setKey(textKey).allOf().build())
                 .setShortDescription(Text.of("Repeats the words you say to the command, one at a time."))
-                .setExecutor((source, context) -> {
+                .setExecutor((cause, source, context) -> {
                     context.getAll(textKey).forEach(x -> source.sendMessage(Text.of("You chose ", x)));
                     return CommandResult.success();
                 }).build(), "chooseall");
@@ -111,7 +111,7 @@ public class StandardCommandsTest {
                 )
                 .setShortDescription(Text.of("Repeats the words you say to the command, one at a time, to the specified player, but with helpful "
                         + "suggestions and a custom usage text."))
-                .setExecutor((source, context) -> {
+                .setExecutor((cause, source, context) -> {
                     Player player = context.<Player>getOne(playerKey).orElseThrow(() -> new CommandException(Text.of("No player was specified")));
                     context.getAll(textKey).forEach(x -> player.sendMessage(Text.of(source.getName(), " chose ", x)));
                     return CommandResult.success();
@@ -119,18 +119,18 @@ public class StandardCommandsTest {
 
         Sponge.getCommandManager().register(this, Command.builder()
                 .setShortDescription(Text.of("A command that only has a subcommand"))
-                .child(Command.builder().setExecutor((source, context) -> {
+                .child(Command.builder().setExecutor((cause, source, context) -> {
                     source.sendMessage(Text.of("Child executed"));
                     return CommandResult.success();
                 }).build(), "child").build(), "subwithchildonly");
 
         Sponge.getCommandManager().register(this, Command.builder()
                 .setShortDescription(Text.of("A command that has a subcommand as well as a base command"))
-                .child(Command.builder().setExecutor((source, context) -> {
+                .child(Command.builder().setExecutor((cause, source, context) -> {
                     source.sendMessage(Text.of("Child executed"));
                     return CommandResult.success();
                 })
-                .setExecutor(((source, context) -> {
+                .setExecutor(((cause, source, context) -> {
                     source.sendMessage(Text.of("Base executed"));
                     return CommandResult.success();
                 }))
@@ -171,14 +171,14 @@ public class StandardCommandsTest {
 
         Command.builder()
                 .setShortDescription(Text.of("A command that should never have the body executed."))
-                .setExecutor(((source, context) -> {
+                .setExecutor(((cause, source, context) -> {
                     source.sendMessage(Text.of("If you see this, it went wrong."));
                     return CommandResult.success();
                 })).buildAndRegister(this.pluginContainer, "commandpre");
 
         Command.builder()
                 .setShortDescription(Text.of("A command that should have its result changed after the execution."))
-                .setExecutor((source, context) -> {
+                .setExecutor((cause, source, context) -> {
                     source.sendMessage(Text.of("If you see this, it went right!"));
                     return CommandResult.empty();
                 })
@@ -186,7 +186,7 @@ public class StandardCommandsTest {
 
         Command.builder()
                 .setShortDescription(Text.of("A command that processes commandpre and commandpost and checks the output."))
-                .setExecutor(((source, context) -> {
+                .setExecutor(((cause, source, context) -> {
                     CommandResult result = Sponge.getCommandManager().process(source, "commandpre");
                     source.sendMessage(Text.of("commandpre: " + result.successCount().orElse(0)));
 

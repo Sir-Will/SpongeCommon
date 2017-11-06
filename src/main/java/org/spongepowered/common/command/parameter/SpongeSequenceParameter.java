@@ -26,6 +26,7 @@ package org.spongepowered.common.command.parameter;
 
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.Parameter;
@@ -50,7 +51,7 @@ public class SpongeSequenceParameter implements Parameter {
     }
 
     @Override
-    public void parse(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public void parse(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         if (this.isOptional && !args.hasNext()) {
             return;
         }
@@ -61,9 +62,9 @@ public class SpongeSequenceParameter implements Parameter {
         try {
             boolean parseFlags = context instanceof SpongeCommandContext && !((SpongeCommandContext) context).getFlags().isAnchored();
             for (Parameter parameter : this.parameters) {
-                parameter.parse(source, args, context);
+                parameter.parse(cause, args, context);
                 if (parseFlags) {
-                    ((SpongeCommandContext) context).getFlags().parse(source, args, context);
+                    ((SpongeCommandContext) context).getFlags().parse(cause, args, context);
                 }
             }
         } catch (Exception ex) {
@@ -78,16 +79,16 @@ public class SpongeSequenceParameter implements Parameter {
     }
 
     @Override
-    public List<String> complete(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public List<String> complete(Cause cause, CommandArgs args, CommandContext context) throws ArgumentParseException {
         for (Iterator<Parameter> it = this.parameters.iterator(); it.hasNext(); ) {
             Parameter element = it.next();
             CommandArgs.State startState = args.getState();
             try {
-                element.parse(source, args, context);
+                element.parse(cause, args, context);
                 CommandArgs.State endState = args.getState();
                 if (!args.hasNext()) {
                     args.setState(startState);
-                    List<String> inputs = element.complete(source, args, context);
+                    List<String> inputs = element.complete(cause, args, context);
                     args.previous();
                     if (!inputs.contains(args.next())) {
                         // Tabcomplete returns results to complete the last word in an argument.
@@ -99,7 +100,7 @@ public class SpongeSequenceParameter implements Parameter {
                 }
             } catch (ArgumentParseException e) {
                 args.setState(startState);
-                return element.complete(source, args, context);
+                return element.complete(cause, args, context);
             }
 
             if (!it.hasNext()) {
@@ -110,9 +111,9 @@ public class SpongeSequenceParameter implements Parameter {
     }
 
     @Override
-    public Text getUsage(CommandSource source) {
+    public Text getUsage(Cause cause) {
         return Text.joinWith(Text.of(" "), this.parameters.stream()
-                .map(x -> x.getUsage(source))
+                .map(x -> x.getUsage(cause))
                 .filter(x -> !x.isEmpty())
                 .collect(Collectors.toList()));
     }

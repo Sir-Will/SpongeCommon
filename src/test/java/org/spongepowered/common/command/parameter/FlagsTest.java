@@ -31,6 +31,8 @@ import org.mockito.Mockito;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.command.parameter.flag.Flags;
+import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.api.event.cause.EventContext;
 import org.spongepowered.common.command.TestParameter;
 import org.spongepowered.common.command.parameter.flag.SpongeFlagsBuilder;
 import org.spongepowered.common.command.parameter.flag.behaviors.AcceptNonValueBehavior;
@@ -53,10 +55,11 @@ public class FlagsTest {
         Flags flags = new SpongeFlagsBuilder().flag("a").build();
 
         SpongeCommandArgs args = new SpongeCommandArgs(new SpaceSplitInputTokenizer().tokenize("-a", false), "-a");
-        SpongeCommandContext context = new SpongeCommandContext();
         CommandSource source = Mockito.mock(CommandSource.class);
+        Cause cause = Cause.of(EventContext.empty(), source);
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
-        flags.parse(source, args, context);
+        flags.parse(cause, args, context);
         Assert.assertTrue(context.<Boolean>getOneUnchecked("a"));
     }
 
@@ -66,10 +69,12 @@ public class FlagsTest {
         Flags flags = new SpongeFlagsBuilder().flag("a").flag("b").build();
 
         SpongeCommandArgs args = new SpongeCommandArgs(new SpaceSplitInputTokenizer().tokenize("-ab", false), "-ab");
-        SpongeCommandContext context = new SpongeCommandContext();
         CommandSource source = Mockito.mock(CommandSource.class);
+        Cause cause = Cause.of(EventContext.empty(), source);
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
-        flags.parse(source, args, context);
+        flags.parse(cause, args, context);
+
         Assert.assertTrue(context.<Boolean>getOneUnchecked("a"));
         Assert.assertTrue(context.<Boolean>getOneUnchecked("b"));
     }
@@ -80,10 +85,12 @@ public class FlagsTest {
         Flags flags = new SpongeFlagsBuilder().flag("a").flag("b").setUnknownShortFlagBehavior(new AcceptValueBehavior()).build();
 
         SpongeCommandArgs args = new SpongeCommandArgs(new SpaceSplitInputTokenizer().tokenize("-c hello", false), "-c hello");
-        SpongeCommandContext context = new SpongeCommandContext();
         CommandSource source = Mockito.mock(CommandSource.class);
+        Cause cause = Cause.of(EventContext.empty(), source);
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
-        flags.parse(source, args, context);
+        flags.parse(cause, args, context);
+
         Assert.assertEquals("hello", context.<String>getOneUnchecked("c"));
     }
 
@@ -93,10 +100,11 @@ public class FlagsTest {
         Flags flags = new SpongeFlagsBuilder().flag("a").flag("b").setUnknownShortFlagBehavior(new SkipBehavior()).build();
 
         SpongeCommandArgs args = new SpongeCommandArgs(new SpaceSplitInputTokenizer().tokenize("-ca hello", false), "-ca hello");
-        SpongeCommandContext context = new SpongeCommandContext();
         CommandSource source = Mockito.mock(CommandSource.class);
+        Cause cause = Cause.of(EventContext.empty(), source);
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
-        flags.parse(source, args, context);
+        flags.parse(cause, args, context);
         Assert.assertFalse(context.hasAny("c"));
         Assert.assertTrue(context.hasAny("a"));
     }
@@ -107,10 +115,11 @@ public class FlagsTest {
         Flags flags = new SpongeFlagsBuilder().flag("a").flag("b").setUnknownShortFlagBehavior(new IgnoreBehavior()).build();
 
         SpongeCommandArgs args = new SpongeCommandArgs(new SpaceSplitInputTokenizer().tokenize("-c hello", false), "-c hello");
-        SpongeCommandContext context = new SpongeCommandContext();
         CommandSource source = Mockito.mock(CommandSource.class);
+        Cause cause = Cause.of(EventContext.empty(), source);
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
-        flags.parse(source, args, context);
+        flags.parse(cause, args, context);
         Assert.assertFalse(context.<Boolean>getOne("c").isPresent());
     }
 
@@ -120,10 +129,11 @@ public class FlagsTest {
         Flags flags = new SpongeFlagsBuilder().flag("a").flag("b").setUnknownShortFlagBehavior(new AcceptValueBehavior()).build();
 
         SpongeCommandArgs args = new SpongeCommandArgs(new SpaceSplitInputTokenizer().tokenize("-ca hello", false), "-ca hello");
-        SpongeCommandContext context = new SpongeCommandContext();
         CommandSource source = Mockito.mock(CommandSource.class);
+        Cause cause = Cause.of(EventContext.empty(), source);
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
-        flags.parse(source, args, context);
+        flags.parse(cause, args, context);
         Assert.assertTrue(context.<Boolean>getOneUnchecked("c"));
         Assert.assertTrue(context.<Boolean>getOneUnchecked("a"));
     }
@@ -134,10 +144,11 @@ public class FlagsTest {
         Flags flags = new SpongeFlagsBuilder().flag("a").flag("b").setUnknownShortFlagBehavior(new AcceptValueBehavior()).build();
 
         SpongeCommandArgs args = new SpongeCommandArgs(new SpaceSplitInputTokenizer().tokenize("-c hello", false), "-c hello");
-        SpongeCommandContext context = new SpongeCommandContext();
         CommandSource source = Mockito.mock(CommandSource.class);
+        Cause cause = Cause.of(EventContext.empty(), source);
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
-        flags.parse(source, args, context);
+        flags.parse(cause, args, context);
         Assert.assertTrue(context.hasAny("c"));
         Assert.assertEquals("hello", context.<String>getOneUnchecked("c"));
     }
@@ -148,10 +159,11 @@ public class FlagsTest {
         Flags flags = new SpongeFlagsBuilder().flag("a").flag("b").setUnknownShortFlagBehavior(new AcceptNonValueBehavior()).build();
 
         SpongeCommandArgs args = new SpongeCommandArgs(new SpaceSplitInputTokenizer().tokenize("-c hello", false), "-c hello");
-        SpongeCommandContext context = new SpongeCommandContext();
         CommandSource source = Mockito.mock(CommandSource.class);
+        Cause cause = Cause.of(EventContext.empty(), source);
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
-        flags.parse(source, args, context);
+        flags.parse(cause, args, context);
         Assert.assertTrue(context.<Boolean>getOneUnchecked("c"));
     }
 
@@ -161,10 +173,11 @@ public class FlagsTest {
         Flags flags = new SpongeFlagsBuilder().flag("a").flag("b").flag("ab").build();
 
         SpongeCommandArgs args = new SpongeCommandArgs(new SpaceSplitInputTokenizer().tokenize("--ab", false), "--ab");
-        SpongeCommandContext context = new SpongeCommandContext();
         CommandSource source = Mockito.mock(CommandSource.class);
+        Cause cause = Cause.of(EventContext.empty(), source);
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
-        flags.parse(source, args, context);
+        flags.parse(cause, args, context);
         Assert.assertTrue(context.<Boolean>getOneUnchecked("ab"));
         Assert.assertFalse(context.hasAny("a"));
         Assert.assertFalse(context.hasAny("b"));
@@ -177,10 +190,11 @@ public class FlagsTest {
         Flags flags = new SpongeFlagsBuilder().valueFlag(this.DUMMY, "ab").build();
 
         SpongeCommandArgs args = new SpongeCommandArgs(new SpaceSplitInputTokenizer().tokenize("--ab hello", false), "--ab hello");
-        SpongeCommandContext context = new SpongeCommandContext();
         CommandSource source = Mockito.mock(CommandSource.class);
+        Cause cause = Cause.of(EventContext.empty(), source);
+        SpongeCommandContext context = new SpongeCommandContext(cause);
 
-        flags.parse(source, args, context);
+        flags.parse(cause, args, context);
         Assert.assertEquals("hello", context.<String>getOneUnchecked("test"));
         Assert.assertTrue(context.<Boolean>getOneUnchecked("ab"));
     }
