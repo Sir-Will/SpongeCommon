@@ -31,11 +31,13 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntityChest;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.world.ILockableContainer;
+import org.apache.commons.lang3.ObjectUtils;
 import org.spongepowered.api.block.tileentity.carrier.Chest;
 import org.spongepowered.api.data.manipulator.DataManipulator;
 import org.spongepowered.api.data.manipulator.mutable.block.ConnectedDirectionData;
 import org.spongepowered.api.item.inventory.Inventory;
 import org.spongepowered.api.util.annotation.NonnullByDefault;
+import org.spongepowered.api.world.Location;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -170,5 +172,13 @@ public abstract class MixinTileEntityChest extends MixinTileEntityLockableLoot i
         return InventoryUtil.getDoubleChestInventory(((TileEntityChest)(Object) this));
     }
 
+    @Override
+    public Optional<Location> getDoubleChestLocation() {
+        TileEntityChest chest = ObjectUtils.firstNonNull(this.adjacentChestXNeg, this.adjacentChestXPos, this.adjacentChestZNeg, this.adjacentChestZPos);
+        if (chest == null) {
+            return Optional.empty();
+        }
+        return Optional.of(((Chest) chest).getLocation());
+    }
 }
 
